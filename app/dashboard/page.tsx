@@ -5,10 +5,10 @@ import { useState, useMemo } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css'; // Wajib: Import tema CSS dari Quill
+import 'react-quill-new/dist/quill.snow.css'; // Wajib: Import tema CSS dari Quill
 
 // Import dinamis untuk mencegah error SSR di Next.js
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 export default function DashboardPage() {
   const [title, setTitle] = useState('');
