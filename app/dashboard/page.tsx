@@ -5,13 +5,11 @@ import { useState, useMemo } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
-import 'react-quill-new/dist/quill.snow.css'; // Menggunakan react-quill-new sesuai perbaikanmu
+import 'react-quill-new/dist/quill.snow.css'; 
 
-// Import dinamis
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 export default function DashboardPage() {
-  // === STATE DIPERBARUI SESUAI DESAIN BARU ===
   const [title, setTitle] = useState('');
   const [dateline, setDateline] = useState('');
   const [category, setCategory] = useState('Kabar Dari Kawah');
@@ -19,17 +17,22 @@ export default function DashboardPage() {
   const [image, setImage] = useState<File | null>(null);
   const [content, setContent] = useState('');
   
-  // State untuk Kredit Redaksi
+  // === STATE KREDIT REDAKSI & FOTO (DIPERBARUI) ===
   const [penulis, setPenulis] = useState('');
-  const [editorName, setEditorName] = useState('');
-  const [fotografer, setFotografer] = useState('');
-  const [sumber, setSumber] = useState('');
+  const [fotoPenulis, setFotoPenulis] = useState<File | null>(null);
   
-  // State untuk Tags
+  const [editorName, setEditorName] = useState('');
+  const [fotoEditor, setFotoEditor] = useState<File | null>(null);
+  
+  const [fotografer, setFotografer] = useState('');
+  const [fotoFotografer, setFotoFotografer] = useState<File | null>(null);
+  
+  const [sumber, setSumber] = useState('');
+  const [fotoSumber, setFotoSumber] = useState<File | null>(null);
+  
   const [tags, setTags] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Konfigurasi toolbar
   const modules = useMemo(() => ({
     toolbar: [
       [{ 'header': [1, 2, 3, false] }],
@@ -40,7 +43,10 @@ export default function DashboardPage() {
     ],
   }), []);
 
-  const uploadImageToCloudinary = async (file: File) => {
+  // Fungsi Upload ke Cloudinary
+  const uploadImageToCloudinary = async (file: File | null) => {
+    if (!file) return ''; // Jika tidak ada file, kembalikan string kosong
+    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
@@ -64,10 +70,24 @@ export default function DashboardPage() {
     setIsSubmitting(true);
 
     try {
-      const imageUrl = await uploadImageToCloudinary(image);
+      // MENGUNGGAH SEMUA GAMBAR SECARA BERSAMAAN (Paralel agar cepat)
+      const [
+        imageUrl, 
+        urlFotoPenulis, 
+        urlFotoEditor, 
+        urlFotoFotografer, 
+        urlFotoSumber
+      ] = await Promise.all([
+        uploadImageToCloudinary(image),
+        uploadImageToCloudinary(fotoPenulis),
+        uploadImageToCloudinary(fotoEditor),
+        uploadImageToCloudinary(fotoFotografer),
+        uploadImageToCloudinary(fotoSumber)
+      ]);
+
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
-      // Menyimpan data lengkap ke Firebase
+      // Menyimpan data lengkap dengan URL foto kredit
       await addDoc(collection(db, 'articles'), {
         title,
         slug,
@@ -78,23 +98,31 @@ export default function DashboardPage() {
         imageUrl,
         kredit: {
           penulis: penulis || 'Redaksi',
+          fotoPenulis: urlFotoPenulis,
           editor: editorName || 'Redaksi',
+          fotoEditor: urlFotoEditor,
           fotografer: fotografer || '-',
-          sumber: sumber || '-'
+          fotoFotografer: urlFotoFotografer,
+          sumber: sumber || '-',
+          fotoSumber: urlFotoSumber
         },
         tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
         authorId: auth.currentUser?.uid || 'Unknown',
         authorEmail: auth.currentUser?.email || 'Unknown',
         createdAt: serverTimestamp(),
-        published: status === 'Langsung Terbit' // Jika draft, status false
+        published: status === 'Langsung Terbit'
       });
 
       alert('Berita berhasil dipublikasikan!');
       
-      // Reset semua form setelah sukses
+      // Reset form
       setTitle(''); setDateline(''); setCategory('Kabar Dari Kawah'); setStatus('Langsung Terbit');
-      setImage(null); setContent(''); setPenulis(''); setEditorName('');
-      setFotografer(''); setSumber(''); setTags('');
+      setImage(null); setContent(''); setTags('');
+      setPenulis(''); setFotoPenulis(null);
+      setEditorName(''); setFotoEditor(null);
+      setFotografer(''); setFotoFotografer(null);
+      setSumber(''); setFotoSumber(null);
+      
     } catch (error) {
       console.error('Error mempublikasikan berita:', error);
       alert('Terjadi kesalahan saat menyimpan berita.');
@@ -106,7 +134,6 @@ export default function DashboardPage() {
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 bg-gray-50 min-h-screen">
       
-      {/* HEADER TULIS BERITA */}
       <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
         <h2 className="text-2xl font-serif font-bold text-[#0f2136]">Tulis Berita Baru</h2>
         <button type="button" onClick={() => window.history.back()} className="text-gray-500 hover:text-red-500 text-sm font-medium transition flex items-center gap-1">
@@ -121,20 +148,12 @@ export default function DashboardPage() {
           <div className="md:col-span-2 space-y-4">
             <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100">
               <label className="block text-sm font-bold text-gray-700 mb-2">Judul Berita</label>
-              <input 
-                type="text" value={title} onChange={(e) => setTitle(e.target.value)} 
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-lg text-gray-800 placeholder-gray-400" 
-                placeholder="Masukkan judul berita..." required 
-              />
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-lg text-gray-800 placeholder-gray-400" placeholder="Masukkan judul berita..." required />
             </div>
             <div className="bg-[#f8faff] p-5 rounded-lg border border-blue-100 flex flex-col md:flex-row md:items-center gap-4">
               <div className="flex-1">
                 <label className="block text-xs font-bold text-[#0f2136] mb-1 flex items-center gap-1">📍 Dateline / Lokasi</label>
-                <input 
-                  type="text" value={dateline} onChange={(e) => setDateline(e.target.value)} 
-                  className="w-full px-3 py-2 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" 
-                  placeholder="Contoh: Malang / Jakarta" 
-                />
+                <input type="text" value={dateline} onChange={(e) => setDateline(e.target.value)} className="w-full px-3 py-2 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" placeholder="Contoh: Malang / Jakarta" />
               </div>
               <span className="text-xs text-gray-500 md:mt-5">- Muncul tebal di awal paragraf</span>
             </div>
@@ -162,15 +181,14 @@ export default function DashboardPage() {
 
         {/* BARIS 2: Gambar Sampul */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <label className="block text-sm font-bold text-[#0f2136] mb-3">Gambar Sampul (Thumbnail)</label>
+          <label className="block text-sm font-bold text-[#0f2136] mb-3">Gambar Sampul (Thumbnail) *Wajib</label>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition relative">
             {image ? (
-              <p className="text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded">✓ Gambar terpilih: {image.name}</p>
+              <p className="text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded">✓ {image.name}</p>
             ) : (
               <>
                 <div className="bg-[#3b82f6] text-white px-6 py-2 rounded-md font-bold cursor-pointer mb-2 hover:bg-blue-700 transition">Choose File</div>
                 <p className="text-xs text-gray-500">Image (4MB)</p>
-                <p className="text-xs text-gray-400 mt-1">Format: JPG, PNG</p>
               </>
             )}
             <input type="file" accept="image/*" onChange={(e) => { if (e.target.files) setImage(e.target.files[0]); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required />
@@ -187,16 +205,48 @@ export default function DashboardPage() {
 
         {/* BARIS 4: Kredit Redaksi & Tags */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* KREDIT REDAKSI (DIPERBARUI DENGAN FOTO) */}
           <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <h3 className="text-sm font-bold text-[#0f2136] mb-4 flex items-center gap-2">👥 KREDIT REDAKSI</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Penulis</label><input type="text" value={penulis} onChange={(e) => setPenulis(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Editor</label><input type="text" value={editorName} onChange={(e) => setEditorName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Fotografer</label><input type="text" value={fotografer} onChange={(e) => setFotografer(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500" /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1">Sumber</label><input type="text" value={sumber} onChange={(e) => setSumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+              
+              {/* PENULIS */}
+              <div className="border p-3 rounded-md bg-gray-50 border-gray-200">
+                <label className="block text-xs font-bold text-gray-700 mb-1">Penulis</label>
+                <input type="text" value={penulis} onChange={(e) => setPenulis(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 mb-2" placeholder="Nama Penulis" />
+                <label className="block text-[10px] font-semibold text-gray-500 mb-1">Foto Profil (Opsional):</label>
+                <input type="file" accept="image/*" onChange={(e) => setFotoPenulis(e.target.files?.[0] || null)} className="block w-full text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+              </div>
+
+              {/* EDITOR */}
+              <div className="border p-3 rounded-md bg-gray-50 border-gray-200">
+                <label className="block text-xs font-bold text-gray-700 mb-1">Editor</label>
+                <input type="text" value={editorName} onChange={(e) => setEditorName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 mb-2" placeholder="Nama Editor" />
+                <label className="block text-[10px] font-semibold text-gray-500 mb-1">Foto Profil (Opsional):</label>
+                <input type="file" accept="image/*" onChange={(e) => setFotoEditor(e.target.files?.[0] || null)} className="block w-full text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+              </div>
+
+              {/* FOTOGRAFER */}
+              <div className="border p-3 rounded-md bg-gray-50 border-gray-200">
+                <label className="block text-xs font-bold text-gray-700 mb-1">Fotografer</label>
+                <input type="text" value={fotografer} onChange={(e) => setFotografer(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 mb-2" placeholder="Nama Fotografer" />
+                <label className="block text-[10px] font-semibold text-gray-500 mb-1">Foto Profil (Opsional):</label>
+                <input type="file" accept="image/*" onChange={(e) => setFotoFotografer(e.target.files?.[0] || null)} className="block w-full text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+              </div>
+
+              {/* SUMBER */}
+              <div className="border p-3 rounded-md bg-gray-50 border-gray-200">
+                <label className="block text-xs font-bold text-gray-700 mb-1">Sumber</label>
+                <input type="text" value={sumber} onChange={(e) => setSumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:border-blue-500 mb-2" placeholder="Nama Instansi/Sumber" />
+                <label className="block text-[10px] font-semibold text-gray-500 mb-1">Logo/Foto (Opsional):</label>
+                <input type="file" accept="image/*" onChange={(e) => setFotoSumber(e.target.files?.[0] || null)} className="block w-full text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+              </div>
+
             </div>
           </div>
 
+          {/* TAGS */}
           <div className="bg-[#fffdf2] p-6 rounded-lg shadow-sm border border-yellow-200">
             <h3 className="text-sm font-bold text-[#0f2136] mb-4 flex items-center gap-2">🏷️ TAGS / TOPIK</h3>
             <textarea value={tags} onChange={(e) => setTags(e.target.value)} rows={4} className="w-full px-3 py-2 border border-yellow-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-yellow-400 bg-white" placeholder="Contoh: Politik, Kampus, PMII Malang (Pisahkan dengan koma)" />
@@ -205,7 +255,7 @@ export default function DashboardPage() {
 
         {/* TOMBOL TERBITKAN */}
         <button type="submit" disabled={isSubmitting} className={`w-full py-4 text-white font-extrabold rounded-lg shadow-md transition-all text-lg flex justify-center items-center gap-2 ${isSubmitting ? 'bg-gray-600 cursor-not-allowed' : 'bg-[#0a1727] hover:bg-[#152e4d]'}`}>
-          🚀 {isSubmitting ? 'Mempublikasikan...' : 'Terbitkan Berita'}
+          🚀 {isSubmitting ? 'Mempublikasikan Gambar & Berita...' : 'Terbitkan Berita'}
         </button>
 
       </form>
