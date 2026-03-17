@@ -66,16 +66,24 @@ export default function Sidebar({ menuName }: { menuName: string }) {
         setPoster({ url: '', link: '' });
       }
 
-      // 2. Ambil Data Agenda Terdekat
+      // 2. Ambil Data Agenda Terdekat (DIPERBARUI)
       try {
-        const q = query(collection(db, 'agendas'), orderBy('date', 'asc'), limit(5));
+        // Hapus limit() agar kita bisa menyaring semua data untuk mencari tanggal yang masih aktif
+        const q = query(collection(db, 'agendas'), orderBy('date', 'asc'));
         const querySnapshot = await getDocs(q);
         const fetchedAgendas = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Agenda));
         
-        // Filter hanya agenda yang belum lewat hari H (H-1 masih ditampilkan)
-        const upcoming = fetchedAgendas.filter(a => new Date(a.date).getTime() >= new Date().getTime() - (24 * 60 * 60 * 1000));
+        // Buat patokan tanggal "Kemarin" agar acara yang H-1 atau sedang berlangsung tidak langsung hilang
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Filter: Hanya simpan agenda yang jadwalnya LEBIH BESAR dari "kemarin"
+        const upcoming = fetchedAgendas.filter(a => {
+          const agendaDate = new Date(a.date);
+          return agendaDate.getTime() >= yesterday.getTime();
+        });
         
-        // Ambil maksimal 3 agenda terdekat
+        // Tampilkan maksimal 3 agenda terdekat di layar
         setAgendas(upcoming.slice(0, 3));
       } catch (error) {
         console.log("Koleksi Agenda mungkin belum dibuat", error);

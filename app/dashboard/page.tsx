@@ -87,31 +87,32 @@ export default function DashboardPage() {
 
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
-      // Menyimpan data lengkap dengan URL foto kredit
+      // Ganti bagian addDoc di dalam handleSubmit dengan ini:
       await addDoc(collection(db, 'articles'), {
-        title,
-        slug,
-        dateline,
-        content, 
-        category,
-        status,
-        imageUrl,
-        kredit: {
-          penulis: penulis || 'Redaksi',
-          fotoPenulis: urlFotoPenulis,
-          editor: editorName || 'Redaksi',
-          fotoEditor: urlFotoEditor,
-          fotografer: fotografer || '-',
-          fotoFotografer: urlFotoFotografer,
-          sumber: sumber || '-',
-          fotoSumber: urlFotoSumber
-        },
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
-        authorId: auth.currentUser?.uid || 'Unknown',
-        authorEmail: auth.currentUser?.email || 'Unknown',
-        createdAt: serverTimestamp(),
-        published: status === 'Langsung Terbit'
-      });
+      title,
+      slug,
+      dateline: dateline || "", // Jika kosong, simpan string kosong, bukan undefined
+      content, 
+      category,
+      status,
+      imageUrl: imageUrl || "", 
+      kredit: {
+        penulis: penulis || 'Redaksi',
+        // Gunakan || "" agar jika foto tidak diupload, nilainya string kosong, bukan undefined
+        fotoPenulis: urlFotoPenulis || "", 
+        editor: editorName || 'Redaksi',
+        fotoEditor: urlFotoEditor || "",
+        fotografer: fotografer || '-',
+        fotoFotografer: urlFotoFotografer || "",
+        sumber: sumber || '-',
+        fotoSumber: urlFotoSumber || ""
+      },
+      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [],
+      authorId: auth.currentUser?.uid || 'Unknown',
+      authorEmail: auth.currentUser?.email || 'Unknown',
+      createdAt: serverTimestamp(),
+      published: status === 'Langsung Terbit'
+    });
 
       alert('Berita berhasil dipublikasikan!');
       
