@@ -3,142 +3,173 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 
-export default function TentangKamiPage() {
-  const [articles, setArticles] = useState<any[]>([]);
-  const [general, setGeneral] = useState({ agenda: '', posterUrl: '' });
-  const [about, setAbout] = useState({ description: '', visi: '', misi: '', address: '', mapUrl: '' });
+interface AboutData {
+  description: string;
+  visi: string;
+  misi: string;
+  address: string;
+  mapUrl: string;
+}
+
+interface Redaksi {
+  id: string;
+  name: string;
+  role: string;
+  imageUrl: string;
+}
+
+export default function TentangPage() {
+  const [about, setAbout] = useState<AboutData | null>(null);
+  const [redaksi, setRedaksi] = useState<Redaksi[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [articlesSnap, generalSnap, aboutSnap] = await Promise.all([
-          getDocs(query(collection(db, 'articles'), orderBy('createdAt', 'desc'))),
-          getDoc(doc(db, 'settings', 'general')),
-          getDoc(doc(db, 'settings', 'about'))
-        ]);
+        // 1. Ambil data Pengaturan Tentang Kami (Visi, Misi, Deskripsi)
+        const aboutSnap = await getDoc(doc(db, 'settings', 'about'));
+        if (aboutSnap.exists()) {
+          setAbout(aboutSnap.data() as AboutData);
+        }
 
-        setArticles(articlesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        if (generalSnap.exists()) setGeneral(generalSnap.data() as any);
-        if (aboutSnap.exists()) setAbout(aboutSnap.data() as any);
+        // 2. Ambil data Susunan Redaksi
+        const q = query(collection(db, 'redaksi'), orderBy('createdAt', 'asc'));
+        const redaksiSnap = await getDocs(q);
+        setRedaksi(redaksiSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Redaksi)));
+        
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Gagal mengambil data:", error);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center">Memuat...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+         <div className="text-center">
+           <div className="w-12 h-12 border-4 border-[#0f2136] border-t-yellow-500 rounded-full animate-spin mx-auto mb-4"></div>
+           <p className="text-sm font-serif font-bold tracking-widest uppercase text-[#0f2136]">Memuat Profil...</p>
+         </div>
+      </div>
+    );
+  }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 md:px-8 py-10 bg-gray-50/50">
+    <main className="min-h-screen bg-white pb-20">
       
-      {/* HEADER HALAMAN */}
-      <div className="text-center mb-10">
-        <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#0f2136] mb-2">Tentang Kami</h1>
-        <p className="text-gray-500">Mengenal lebih dekat Portal Berita Karya Kader.</p>
-        <div className="w-full h-px bg-gray-200 mt-6"></div>
+      {/* HEADER HERO */}
+      <div className="bg-[#0f2136] text-white py-16 px-4 text-center border-b-4 border-yellow-500 relative overflow-hidden">
+        {/* Dekorasi Latar */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+          <div className="absolute w-64 h-64 border-4 border-white rounded-full -top-10 -left-10"></div>
+          <div className="absolute w-96 h-96 border-4 border-white rounded-full -bottom-20 -right-20"></div>
+        </div>
+        
+        <div className="relative z-10 max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-serif font-extrabold text-yellow-500 mb-4 tracking-wide uppercase">
+            Tentang Kami
+          </h1>
+          <p className="text-lg text-gray-300 font-light leading-relaxed">
+            {about?.description || 'Portal berita resmi pergerakan dan literasi mahasiswa. Menyajikan informasi teraktual, kajian mendalam, dan opini tajam dari para kader.'}
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="max-w-6xl mx-auto px-4 md:px-8 mt-12 space-y-16">
         
-        {/* KOLOM KIRI (Konten Utama) */}
-        <div className="w-full lg:w-2/3 space-y-6">
-          
-          {/* Card 1: Visi Misi */}
-          <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-100 shadow-sm">
-            <p className="text-gray-700 mb-6 leading-relaxed">
-              {about.description || "Selamat datang di Portal Berita Karya Kader. Platform ini didirikan sebagai wadah kreativitas dan informasi bagi seluruh kader."}
+        {/* VISI & MISI */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
+            <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-2xl mb-6 shadow-sm">🎯</div>
+            <h2 className="text-2xl font-serif font-bold text-[#0f2136] mb-4">Visi</h2>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {about?.visi || 'Belum ada data visi yang diisi dari dashboard.'}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-lg">
-                <h4 className="font-bold text-[#0f2136] mb-2 flex items-center gap-2">🚀 Visi Kami</h4>
-                <p className="text-sm text-gray-700">{about.visi || "Menjadi media digital terdepan yang mencerahkan."}</p>
-              </div>
-              <div className="bg-green-50/50 border border-green-100 p-5 rounded-lg">
-                <h4 className="font-bold text-[#0f2136] mb-2 flex items-center gap-2">🎯 Misi Kami</h4>
-                <p className="text-sm text-gray-700">{about.misi || "Menyajikan berita berimbang dan mewadahi karya kader."}</p>
-              </div>
-            </div>
+          </div>
+          <div className="bg-[#0f2136] text-white p-8 rounded-2xl shadow-md border-b-4 border-yellow-500 hover:shadow-lg transition">
+            <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl mb-6 border border-gray-600">🚀</div>
+            <h2 className="text-2xl font-serif font-bold text-yellow-500 mb-4">Misi</h2>
+            <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+              {about?.misi || 'Belum ada data misi yang diisi dari dashboard.'}
+            </p>
+          </div>
+        </section>
+
+        {/* SUSUNAN REDAKSI */}
+        <section className="pt-8 border-t border-gray-100">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-serif font-bold text-[#0f2136] uppercase tracking-widest">Susunan Redaksi</h2>
+            <div className="w-20 h-1 bg-yellow-500 mx-auto mt-4 rounded-full"></div>
+            <p className="text-gray-500 mt-4 text-sm">Tim di balik layar yang menggerakkan literasi portal Karya Kader.</p>
           </div>
 
-          {/* Card 2: Lokasi */}
-          <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-100 shadow-sm">
-            <h3 className="text-xl font-serif font-bold text-[#0f2136] mb-4 flex items-center gap-2">
-              📍 Lokasi Sekretariat
-            </h3>
-            <div className="w-full h-px bg-gray-100 mb-4"></div>
-            <p className="text-sm text-gray-600 mb-4">{about.address || "Jl. Joyo Tamansari 1 No.41, Merjosari, Kec. Lowokwaru, Kota Malang"}</p>
-            <div className="w-full h-64 bg-gray-200 rounded-lg overflow-hidden border border-gray-200">
-              {about.mapUrl ? (
-                <iframe src={about.mapUrl} width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy"></iframe>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">Peta belum diatur</div>
-              )}
+          {redaksi.length === 0 ? (
+            <div className="text-center py-10 text-gray-400 italic bg-gray-50 rounded-lg border border-dashed border-gray-200">
+              Data redaksi belum ditambahkan.
             </div>
-          </div>
-
-          {/* Card 3: Susunan Redaksi (Statik Sementara) */}
-          <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-100 shadow-sm">
-            <h3 className="text-xl font-serif font-bold text-[#0f2136] mb-4">Susunan Redaksi</h3>
-            <div className="w-full h-px bg-gray-100 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Contoh Anggota Redaksi */}
-              <div className="flex items-center gap-4 p-4 border border-gray-100 rounded-lg bg-gray-50/50">
-                <div className="w-12 h-12 bg-[#0f2136] rounded-full flex items-center justify-center text-yellow-500 font-bold">ED</div>
-                <div>
-                  <h4 className="font-bold text-[#0f2136] text-sm">Redaksi Kawah</h4>
-                  <p className="text-xs text-blue-600">Editor & Publisher</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {redaksi.map((member) => (
+                <div key={member.id} className="group text-center">
+                  <div className="relative w-40 h-40 mx-auto mb-4 rounded-full overflow-hidden border-4 border-gray-100 shadow-sm group-hover:border-yellow-500 transition-colors duration-300">
+                    <Image 
+                      src={member.imageUrl} 
+                      alt={member.name} 
+                      fill 
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#0f2136]">{member.name}</h3>
+                  <p className="text-sm font-semibold text-yellow-600 uppercase tracking-wider mt-1">{member.role}</p>
                 </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* KOLOM KANAN (Sidebar Persis Beranda) */}
-        <aside className="w-full lg:w-1/3 space-y-8">
-          <div className="bg-white border-t-4 border-[#0f2136] rounded-b-lg p-6 shadow-sm border-x border-b border-gray-100">
-            <h3 className="font-serif text-[#0f2136] font-extrabold text-sm mb-4 uppercase border-b border-yellow-500 pb-2">
-              Agenda Rayon
-            </h3>
-            <div className="text-sm text-gray-600 whitespace-pre-wrap">{general.agenda || "Belum ada agenda."}</div>
-          </div>
-
-          <div className="bg-white border-t-4 border-yellow-500 rounded-b-lg p-6 shadow-sm border-x border-b border-gray-100">
-            <h3 className="font-serif text-[#0f2136] font-extrabold text-sm mb-4 uppercase border-b border-[#0f2136] pb-2">
-              Info / Poster
-            </h3>
-            <div className="relative w-full aspect-[4/5] bg-gray-100 rounded-md overflow-hidden">
-              {general.posterUrl ? (
-                <Image src={general.posterUrl} alt="Poster" fill className="object-cover" />
-              ) : (
-                <p className="text-xs text-gray-400 absolute inset-0 flex items-center justify-center">Belum ada poster.</p>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white border-t-4 border-[#0f2136] rounded-b-lg p-6 shadow-sm border-x border-b border-gray-100">
-            <h3 className="font-serif text-[#0f2136] font-extrabold text-sm mb-4 uppercase border-b border-yellow-500 pb-2">
-              Paling Dibaca
-            </h3>
-            <div className="space-y-4">
-              {articles.slice(0, 4).map((article, index) => (
-                 <Link href={`/berita/${article.slug}`} key={article.id} className="flex gap-3 group">
-                   <h4 className="text-sm font-semibold text-gray-700 group-hover:text-[#0f2136] line-clamp-2 leading-snug">
-                     {article.title}
-                   </h4>
-                 </Link>
               ))}
             </div>
+          )}
+        </section>
+
+        {/* LOKASI / PETA */}
+        <section className="pt-8 border-t border-gray-100">
+          <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-200 shadow-sm flex flex-col md:flex-row">
+            <div className="p-8 md:w-1/3 flex flex-col justify-center">
+              <h2 className="text-2xl font-serif font-bold text-[#0f2136] mb-4">Sekretariat</h2>
+              <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                {about?.address || 'Jl. Joyo Tamansari 1 No.41, Merjosari, Kec. Lowokwaru, Kota Malang, Jawa Timur 65144'}
+              </p>
+              <a 
+                href={about?.mapUrl ? `https://www.google.com/maps?q=${encodeURIComponent(about.address)}` : '#'} 
+                target="_blank"
+                className="inline-block bg-[#0f2136] text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-yellow-500 hover:text-[#0f2136] transition shadow-md w-max"
+              >
+                📍 Buka di Maps
+              </a>
+            </div>
+            <div className="md:w-2/3 h-64 md:h-auto bg-gray-200 relative">
+              {about?.mapUrl ? (
+                <iframe 
+                  src={about.mapUrl} 
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0, minHeight: '300px' }} 
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="absolute inset-0"
+                ></iframe>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                  Peta belum diatur di dashboard.
+                </div>
+              )}
+            </div>
           </div>
-        </aside>
+        </section>
 
       </div>
     </main>
