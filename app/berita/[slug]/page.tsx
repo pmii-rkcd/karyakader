@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import Image from 'next/image';
-import Link from 'next/link'; // Ditambahkan untuk penanda kategori
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
-// Mendefinisikan tipe data artikel
+// Mendefinisikan tipe data artikel (Diperbarui dengan field baru)
 interface Article {
   id: string;
   title: string;
@@ -17,12 +17,20 @@ interface Article {
   imageUrl: string;
   authorEmail: string;
   createdAt: any;
+  dateline?: string;
+  tags?: string[];
+  kredit?: {
+    penulis: string;
+    editor: string;
+    fotografer: string;
+    sumber: string;
+  };
 }
 
 export default function DetailBerita() {
   const params = useParams();
   const router = useRouter();
-  const slug = params.slug; // Mengambil slug dari URL
+  const slug = params.slug;
 
   const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,16 +40,13 @@ export default function DetailBerita() {
       if (!slug) return;
 
       try {
-        // Mencari artikel di Firestore yang 'slug'-nya cocok dengan URL
         const q = query(collection(db, 'articles'), where('slug', '==', slug));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          // Jika ketemu, ambil data dokumen pertama
           const docData = querySnapshot.docs[0];
           setArticle({ id: docData.id, ...docData.data() } as Article);
         } else {
-          // Jika tidak ada berita dengan slug tersebut
           setArticle(null);
         }
       } catch (error) {
@@ -65,7 +70,6 @@ export default function DetailBerita() {
     );
   }
 
-  // Tampilan jika berita tidak ditemukan (Error 404 manual)
   if (!article) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center bg-gray-50">
@@ -80,7 +84,6 @@ export default function DetailBerita() {
     );
   }
 
-  // Memformat tanggal Firebase (Timestamp) menjadi teks yang mudah dibaca
   const formattedDate = article.createdAt?.toDate 
     ? article.createdAt.toDate().toLocaleDateString('id-ID', {
         weekday: 'long',
@@ -90,9 +93,19 @@ export default function DetailBerita() {
       })
     : 'Tanggal tidak diketahui';
 
+  // Menyisipkan Dateline ke awal paragraf pertama dengan gaya Jurnalistik
+  let displayContent = article.content;
+  if (article.dateline) {
+    // Mencari tag <p> pertama dan memasukkan tulisan dateline tebal di dalamnya
+    displayContent = article.content.replace(
+      /<p[^>]*>/i, 
+      (match) => `${match}<strong class="uppercase text-[#0f2136]">${article.dateline}</strong> &mdash; `
+    );
+  }
+
   return (
     <main className="min-h-screen bg-white pb-12">
-      {/* Navigasi Atas (Disesuaikan dengan warna tema PMII) */}
+      {/* Navigasi Atas */}
       <nav className="bg-[#0f2136] text-white py-4 shadow-md border-b-2 border-yellow-500">
         <div className="container mx-auto px-4 max-w-4xl">
           <button onClick={() => router.push('/')} className="hover:text-yellow-400 transition flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">
@@ -104,11 +117,10 @@ export default function DetailBerita() {
       {/* Konten Artikel */}
       <article className="container mx-auto px-4 max-w-3xl mt-8">
         
-        {/* === PENANDA MERAH / BREADCRUMB DI SINI === */}
+        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs mb-6 font-semibold text-gray-500 uppercase tracking-widest border-b border-gray-100 pb-3">
           <Link href="/" className="hover:text-[#0f2136] transition-colors">Beranda</Link>
           <span className="text-gray-300">/</span>
-          {/* Warna oranye-merah menggunakan class text-[#f97316] */}
           <span className="text-[#f97316] font-extrabold">
             {article.category}
           </span>
@@ -120,7 +132,7 @@ export default function DetailBerita() {
             {article.title}
           </h1>
           <p className="text-gray-500 text-sm">
-            Oleh <span className="font-semibold text-gray-800">Redaksi Karya Kader</span> • {formattedDate}
+            Oleh <span className="font-semibold text-gray-800">{article.kredit?.penulis || 'Redaksi Karya Kader'}</span> • {formattedDate}
           </p>
         </div>
 
@@ -131,15 +143,66 @@ export default function DetailBerita() {
             alt={article.title}
             fill
             className="object-cover"
-            priority // Memprioritaskan loading gambar ini karena ada di atas (above the fold)
+            priority 
           />
         </div>
 
-        {/* Teks Berita (Menggunakan dangerouslySetInnerHTML untuk merender Rich Text Quill) */}
+        {/* Teks Berita */}
         <div 
           className="prose prose-lg max-w-none text-gray-800 leading-relaxed marker:text-yellow-500 prose-a:text-blue-600 hover:prose-a:text-blue-800"
-          dangerouslySetInnerHTML={{ __html: article.content }} 
+          dangerouslySetInnerHTML={{ __html: displayContent }} 
         />
+
+        {/* === AREA TAGS DAN KREDIT REDAKSI === */}
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          
+          {/* Tags */}
+          {article.tags && article.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-8">
+              {article.tags.map((tag, index) => (
+                <span key={index} className="bg-gray-100 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-sm uppercase tracking-wider hover:bg-yellow-100 hover:text-yellow-800 transition cursor-pointer">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Susunan Kredit */}
+          {article.kredit && (
+            <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 text-sm">
+              <h4 className="font-bold text-[#0f2136] mb-4 uppercase tracking-widest text-xs border-b border-gray-200 pb-2 flex items-center gap-2">
+                👥 Kredit Redaksi
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-700">
+                {article.kredit.penulis && (
+                  <div>
+                    <span className="block text-xs text-gray-500 mb-1">Penulis</span>
+                    <span className="font-semibold">{article.kredit.penulis}</span>
+                  </div>
+                )}
+                {article.kredit.editor && (
+                  <div>
+                    <span className="block text-xs text-gray-500 mb-1">Editor</span>
+                    <span className="font-semibold">{article.kredit.editor}</span>
+                  </div>
+                )}
+                {article.kredit.fotografer && article.kredit.fotografer !== '-' && (
+                  <div>
+                    <span className="block text-xs text-gray-500 mb-1">Fotografer</span>
+                    <span className="font-semibold">{article.kredit.fotografer}</span>
+                  </div>
+                )}
+                {article.kredit.sumber && article.kredit.sumber !== '-' && (
+                  <div>
+                    <span className="block text-xs text-gray-500 mb-1">Sumber</span>
+                    <span className="font-semibold">{article.kredit.sumber}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
       </article>
     </main>
   );
