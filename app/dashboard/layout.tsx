@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar Admin */}
       <aside className="w-64 bg-[#0f2136] text-white flex flex-col shadow-xl">
         <div className="p-6 border-b border-gray-700">
-          <h1 className="text-xl font-bold font-serif text-yellow-500">DASHBOARD REDAKSI</h1>
+          <h1 className="text-xl font-bold font-serif text-yellow-500">ADMIN REDAKSI</h1>
           <p className="text-xs text-gray-400 mt-1">Karya Kader PMII</p>
         </div>
         
