@@ -1,37 +1,24 @@
-// app/kabar/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
-// Panggil komponen Sidebar canggih kita (karena file ini di dalam folder 'kabar', kita pakai ../)
+// Tambahkan limit, startAfter untuk Paginasi
+import { collection, getDocs, query, orderBy, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import Sidebar from '../components/Sidebar'; 
 
-// Tambahkan tipe data yang lebih lengkap seperti di Beranda
 interface Article {
-  id: string; 
-  title: string; 
-  slug: string; 
-  content: string; 
-  category: string; 
-  imageUrl: string;
-  views?: number;
-  commentCount?: number;
-  kredit?: {
-    penulis: string;
-    editor: string;
-    fotografer: string;
-    sumber: string;
-  };
+  id: string; title: string; slug: string; content: string; category: string; imageUrl: string;
+  views?: number; commentCount?: number;
+  kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; };
 }
 
-// Fungsi pembersih HTML & spasi kotor
+// PERBAIKAN: Fungsi pembersih HTML + Spasi Gaib
 const stripHtml = (htmlString: string) => {
   if (!htmlString) return '';
   let text = htmlString.replace(/<[^>]*>?/gm, '');
-  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' '); 
   text = text.replace(/&amp;/g, '&');
   return text;
 };
@@ -39,22 +26,39 @@ const stripHtml = (htmlString: string) => {
 export default function KabarPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // STATE PAGINASI (Load More)
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<QueryDocumentSnapshot<DocumentData, DocumentData> | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  
+  const BATCH_SIZE = 4; // Jumlah berita yang diload setiap kali tombol diklik
 
   // 🔥 GANTI NAMA KATEGORI DI BAWAH INI UNTUK HALAMAN LAIN (Contoh: "Bararasa")
   const KATEGORI_HALAMAN = "Kabar Dari Kawah"; 
 
+  // Load Awal
   useEffect(() => {
-    const fetchArticles = async () => {
+    const fetchInitialArticles = async () => {
       try {
-        // Query pintar: HANYA tarik berita yang kategorinya sesuai KATEGORI_HALAMAN
         const articlesQuery = query(
           collection(db, 'articles'), 
           where('category', '==', KATEGORI_HALAMAN), 
-          orderBy('createdAt', 'desc')
+          orderBy('createdAt', 'desc'),
+          limit(BATCH_SIZE) // Batasi hanya 4 berita awal
         );
 
         const articlesSnap = await getDocs(articlesQuery);
-        setArticles(articlesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article)));
+        
+        if (!articlesSnap.empty) {
+          setArticles(articlesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article)));
+          // Simpan dokumen terakhir untuk jadi titik mulai Load More selanjutnya
+          setLastVisibleDoc(articlesSnap.docs[articlesSnap.docs.length - 1]);
+          
+          if (articlesSnap.docs.length < BATCH_SIZE) setHasMore(false);
+        } else {
+          setHasMore(false);
+        }
         
       } catch (error) {
         console.error("Gagal mengambil data:", error);
@@ -62,8 +66,43 @@ export default function KabarPage() {
         setIsLoading(false);
       }
     };
-    fetchArticles();
-  }, []);
+    fetchInitialArticles();
+  }, [KATEGORI_HALAMAN]);
+
+  // Fungsi Load More (Muat Lebih Banyak)
+  const handleLoadMore = async () => {
+    if (!lastVisibleDoc || !hasMore) return;
+    setIsLoadingMore(true);
+
+    try {
+      const nextQuery = query(
+        collection(db, 'articles'),
+        where('category', '==', KATEGORI_HALAMAN),
+        orderBy('createdAt', 'desc'),
+        startAfter(lastVisibleDoc), // Mulai setelah berita terakhir yang tampil
+        limit(BATCH_SIZE)
+      );
+
+      const nextSnap = await getDocs(nextQuery);
+
+      if (!nextSnap.empty) {
+        const newArticles = nextSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+        setArticles(prev => [...prev, ...newArticles]); // Gabungkan berita lama + baru
+        setLastVisibleDoc(nextSnap.docs[nextSnap.docs.length - 1]);
+        
+        // Kalau yang ditarik kurang dari limit, berarti beritanya sudah habis
+        if (nextSnap.docs.length < BATCH_SIZE) {
+          setHasMore(false);
+        }
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Gagal load more:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -116,7 +155,6 @@ export default function KabarPage() {
                       {stripHtml(article.content)}
                     </p>
                     
-                    {/* INFO METADATA BAWAH (Penulis, Views, Komentar) persis seperti Beranda */}
                     <div className="mt-auto pt-4 border-t border-gray-100 flex flex-col gap-3">
                       <div className="flex items-center justify-between text-[11px] text-gray-500 font-semibold">
                         <span className="flex items-center gap-1.5 truncate w-1/2">
@@ -141,6 +179,37 @@ export default function KabarPage() {
               ))}
             </div>
           )}
+
+          {/* TOMBOL LOAD MORE PAGINASI */}
+          {hasMore && articles.length > 0 && (
+            <div className="mt-12 text-center">
+              <button 
+                onClick={handleLoadMore} 
+                disabled={isLoadingMore}
+                className="inline-flex items-center justify-center gap-2 bg-white border-2 border-[#0f2136] text-[#0f2136] px-8 py-3 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-[#0f2136] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Memuat...
+                  </>
+                ) : (
+                  <>
+                    Tampilkan Lebih Banyak 
+                    <svg className="w-4 h-4 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          
+          {/* PESAN JIKA SEMUA BERITA SUDAH HABIS DILOAD */}
+          {!hasMore && articles.length > 0 && (
+             <div className="mt-12 text-center text-gray-400 text-sm font-medium italic border-t border-gray-100 pt-6">
+               ~ Semua berita di kanal ini telah ditampilkan ~
+             </div>
+          )}
+
         </div>
 
         {/* KOLOM KANAN (Sidebar Pintar) */}
