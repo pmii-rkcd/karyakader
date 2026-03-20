@@ -133,12 +133,12 @@ export default function DetailBerita() {
   if (article.dateline) {
     displayContent = displayContent.replace(
       /<p[^>]*>/i, 
-      (match) => `${match}<strong class="font-bold uppercase">${article.dateline}, Karyakader.id</strong> &mdash; `
+      (match) => `${match}<strong class="font-bold">${article.dateline}, Karyakader.id</strong> &mdash; `
     );
   } else {
     displayContent = displayContent.replace(
       /<p[^>]*>/i, 
-      (match) => `${match}<strong class="font-bold uppercase">Karyakader.id</strong> &mdash; `
+      (match) => `${match}<strong class="font-bold">Karyakader.id</strong> &mdash; `
     );
   }
 
