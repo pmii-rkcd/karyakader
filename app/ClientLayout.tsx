@@ -185,7 +185,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <li><Link href="/bararasa" className="hover:text-yellow-400 transition-colors flex items-center gap-2 hover:translate-x-1 duration-300">Bararasa</Link></li>
               <li><Link href="/kabar" className="hover:text-yellow-400 transition-colors flex items-center gap-2 hover:translate-x-1 duration-300">Kabar Dari Kawah</Link></li>
               <li><Link href="/mutiara" className="hover:text-yellow-400 transition-colors flex items-center gap-2 hover:translate-x-1 duration-300">Mutiara Chondro</Link></li>
-              <li><Link href="/mutiara" className="hover:text-yellow-400 transition-colors flex items-center gap-2 hover:translate-x-1 duration-300">Nalar Tempaan</Link></li>
+              <li><Link href="/nalar" className="hover:text-yellow-400 transition-colors flex items-center gap-2 hover:translate-x-1 duration-300">Nalar Tempaan</Link></li>
             </ul>
           </div>
 

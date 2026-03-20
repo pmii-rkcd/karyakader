@@ -2,9 +2,11 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import ClientPage from './ClientPage'; // Memanggil halaman aslimu
 
-// Fungsi sakti Next.js untuk membuat Meta Tags Dinamis (SEO WhatsApp/FB)
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const slug = params.slug;
+// 🔥 PERBAIKAN: Tipe data params diubah menjadi Promise (Standar Next.js 15)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  // 🔥 PERBAIKAN: Gunakan await untuk membuka (unwrap) Promise
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
 
   try {
     const q = query(collection(db, 'articles'), where('slug', '==', slug));
