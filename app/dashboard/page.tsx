@@ -317,9 +317,9 @@ export default function DashboardPage() {
                 <label className="block text-sm font-bold text-[#0f2136] mb-2">Pilih Kanal / Kategori</label>
                 <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-gray-700 bg-gray-50 font-medium cursor-pointer transition">
                   <option value="Kabar Dari Kawah">Kabar Dari Kawah (Berita)</option>
-                  <option value="Bararasa">Bararasa (Opini/Esai)</option>
-                  <option value="Nalar Tempaan">Nalar Tempaan (Kajian)</option>
-                  <option value="Mutiara Chondro">Mutiara Chondro (Sastra)</option>
+                  <option value="Bararasa">Bararasa (Puisi & Sajak)</option>
+                  <option value="Nalar Tempaan">Nalar Tempaan (Rubrik & Opini)</option>
+                  <option value="Mutiara Chondro">Mutiara Chondrodimuko (Riset Ilmiah)</option>
                 </select>
               </div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
