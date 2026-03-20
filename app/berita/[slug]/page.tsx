@@ -53,7 +53,58 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-// Render tampilan halaman beritamu yang asli
-export default function Page() {
-  return <ClientPage />;
+// 🚀 SUNTIKAN KTP JURNALISTIK (JSON-LD) UNTUK GOOGLE TOP STORIES
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  let jsonLd = null;
+
+  try {
+    const q = query(collection(db, 'articles'), where('slug', '==', slug));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const article = querySnapshot.docs[0].data();
+      const datePublished = article.createdAt?.toDate().toISOString() || new Date().toISOString();
+      const dateModified = article.updatedAt?.toDate().toISOString() || datePublished;
+
+      // Membuat Format Data Terstruktur untuk Google
+      jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'NewsArticle',
+        headline: article.title,
+        image: [article.imageUrl],
+        datePublished: datePublished,
+        dateModified: dateModified,
+        author: [{
+          '@type': 'Person',
+          name: article.kredit?.penulis || 'Redaksi',
+          url: 'https://karyakader.id'
+        }],
+        publisher: {
+          '@type': 'Organization',
+          name: 'Karya Kader',
+          logo: {
+            '@type': 'ImageObject',
+            url: 'https://karyakader.id/logo.png' // Pastikan nanti kamu punya logo web di folder public/logo.png
+          }
+        }
+      };
+    }
+  } catch (error) {
+    console.error("Gagal membuat JSON-LD:", error);
+  }
+
+  // Render tampilan halaman beritamu yang asli + Script JSON-LD
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <ClientPage />
+    </>
+  );
 }
