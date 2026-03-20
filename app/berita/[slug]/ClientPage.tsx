@@ -203,15 +203,27 @@ export default function DetailBerita() {
               )}
             </div>
 
-            {/* TEKS BERITA (FULL SUPPORT DARK MODE) */}
+            {/* TEKS BERITA (KUALITAS JURNALISTIK PREMIUM) */}
             <div 
-              className="prose md:prose-lg max-w-none text-gray-800 dark:text-gray-300 
-              prose-p:leading-[1.9] prose-p:mb-7 prose-p:text-[17px] md:prose-p:text-[18px]
-              prose-headings:font-serif prose-headings:font-bold prose-headings:text-[#0f2136] dark:prose-headings:text-gray-100
-              prose-a:text-blue-600 dark:prose-a:text-yellow-500 hover:prose-a:text-blue-800 dark:hover:prose-a:text-yellow-400 
-              prose-img:rounded-2xl prose-img:w-full prose-img:shadow-sm dark:prose-img:border dark:prose-img:border-gray-800
-              prose-blockquote:border-l-4 prose-blockquote:border-yellow-500 prose-blockquote:bg-gray-50 dark:prose-blockquote:bg-[#15202b] prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:font-serif prose-blockquote:italic prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300
-              prose-strong:text-gray-900 dark:prose-strong:text-white"
+              className="
+              max-w-none font-serif text-[#2b2b2b] dark:text-gray-300 
+              text-[17px] md:text-[20px] leading-[2] md:leading-[2.2] tracking-[0.01em]
+              
+              /* 1. Memberi jarak nafas antar paragraf yang lega */
+              [&_p]:mb-7 md:[&_p]:mb-8 
+              
+              /* 2. Efek Drop Cap (Huruf pertama membesar ala koran) */
+              [&>p:first-child]:first-letter:text-6xl md:[&>p:first-child]:first-letter:text-7xl 
+              [&>p:first-child]:first-letter:font-black [&>p:first-child]:first-letter:text-[#0f2136] dark:[&>p:first-child]:first-letter:text-yellow-500 
+              [&>p:first-child]:first-letter:mr-3 [&>p:first-child]:first-letter:float-left [&>p:first-child]:first-letter:mt-2
+              
+              /* 3. Pengaturan elemen lain dari Editor (Tebal, Kutipan, Link, Gambar) */
+              [&_strong]:font-black [&_strong]:text-black dark:[&_strong]:text-white
+              [&_a]:text-blue-600 dark:[&_a]:text-yellow-400 [&_a]:font-bold hover:[&_a]:underline
+              [&_img]:rounded-2xl [&_img]:my-10 [&_img]:w-full [&_img]:shadow-md dark:[&_img]:border dark:[&_img]:border-gray-800
+              [&_blockquote]:border-l-4 [&_blockquote]:border-yellow-500 [&_blockquote]:bg-gray-50 dark:[&_blockquote]:bg-[#15202b] 
+              [&_blockquote]:py-5 [&_blockquote]:px-6 [&_blockquote]:rounded-r-xl [&_blockquote]:italic [&_blockquote]:my-10 [&_blockquote]:text-gray-700 dark:[&_blockquote]:text-gray-400
+              "
               dangerouslySetInnerHTML={{ __html: displayContent }} 
             />
 
