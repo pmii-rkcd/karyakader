@@ -16,7 +16,8 @@ interface Article {
   id: string; title: string; content: string; category: string; imageUrl: string;
   authorEmail: string; createdAt: any; slug: string; dateline?: string; tags?: string[];
   views?: number; commentCount?: number;
-  kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; };
+  // PERBAIKAN 4: Menambahkan field fotoUrl agar TS tidak error saat dipanggil
+  kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; fotoUrl?: string; };
 }
 
 interface Comment { id: string; name: string; text: string; createdAt: any; }
@@ -127,43 +128,45 @@ export default function DetailBerita() {
 
   const formattedDate = article.createdAt?.toDate ? article.createdAt.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Tanggal tidak diketahui';
 
-  // --- PERBAIKAN SPASI GAIB & STANDAR NASIONAL: DATELINE JURNALISTIK ---
-  let displayContent = article.content.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+  const isBararasa = article.category?.trim().toLowerCase() === 'bararasa';
   
-  if (article.dateline) {
-    displayContent = displayContent.replace(
-      /<p[^>]*>/i, 
-      (match) => `${match}<strong class="font-bold">${article.dateline}, Karyakader.id</strong> &mdash; `
-    );
-  } else {
-    displayContent = displayContent.replace(
-      /<p[^>]*>/i, 
-      (match) => `${match}<strong class="font-bold">Karyakader.id</strong> &mdash; `
-    );
+  let displayContent = article.content;
+
+  if (!isBararasa) {
+    displayContent = displayContent.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+    
+    if (article.dateline) {
+      displayContent = displayContent.replace(
+        /<p[^>]*>/i, 
+        (match) => `${match}<strong class="font-bold">${article.dateline}, Karyakader.id</strong> &mdash; `
+      );
+    } else {
+      displayContent = displayContent.replace(
+        /<p[^>]*>/i, 
+        (match) => `${match}<strong class="font-bold">Karyakader.id</strong> &mdash; `
+      );
+    }
   }
 
   return (
-    <main className="min-h-screen bg-white dark:bg-[#0a0f18] pb-16 pt-8 transition-colors duration-500 font-sans">
+    /* PERBAIKAN 1 & 3: pt-28 untuk cegah header tabrakan, overflow-x-hidden untuk matikan horizontal scroll */
+    <main className="min-h-screen bg-white dark:bg-[#0a0f18] pb-16 pt-28 md:pt-32 overflow-x-hidden transition-colors duration-500 font-sans">
       
       <article className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-12">
           
-          {/* === KOLOM KIRI (KONTEN BERITA) === */}
           <div className="w-full lg:w-[68%]">
             
-            {/* BREADCRUMB */}
             <div className="flex items-center gap-2 text-[11px] mb-6 font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800/60 pb-4">
               <Link href="/" className="hover:text-[#0f2136] dark:hover:text-yellow-400 transition-colors">Beranda</Link>
               <ChevronRight className="w-3 h-3 text-gray-300 dark:text-gray-600" />
               <span className="text-blue-600 dark:text-yellow-500">{article.category}</span>
             </div>
 
-            {/* JUDUL */}
             <h1 className="text-3xl md:text-[42px] font-serif font-black text-[#111827] dark:text-gray-100 mt-2 mb-6 leading-[1.2] tracking-tight">
               {article.title}
             </h1>
             
-            {/* METADATA (Penulis, Tanggal, Share) */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 mb-8 bg-gray-50/50 dark:bg-[#15202b]/50 px-4 rounded-xl border border-gray-100 dark:border-gray-800">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] md:text-[13px] text-gray-600 dark:text-gray-400">
                 <span className="flex items-center gap-2 font-bold text-[#0f2136] dark:text-gray-200 uppercase tracking-wide border-r border-gray-300 dark:border-gray-700 pr-5">
@@ -176,7 +179,6 @@ export default function DetailBerita() {
                 </span>
               </div>
 
-              {/* TOMBOL SHARE SOSMED */}
               <div className="flex items-center gap-2 shrink-0">
                 <Share2 className="w-4 h-4 text-gray-400 mr-1 hidden sm:block" />
                 <a href={getShareUrl('wa', article.title, currentUrl)} target="_blank" title="Bagikan ke WhatsApp" className="bg-[#25D366]/10 text-[#25D366] p-2.5 rounded-full hover:bg-[#25D366] hover:text-white transition">
@@ -191,7 +193,6 @@ export default function DetailBerita() {
               </div>
             </div>
 
-            {/* GAMBAR UTAMA & CAPTION */}
             <div className="mb-10">
               <div className="relative w-full aspect-[16/9] md:h-[480px] rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-[#15202b]">
                 <Image src={article.imageUrl} alt={article.title} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, 70vw" />
@@ -203,31 +204,39 @@ export default function DetailBerita() {
               )}
             </div>
 
-            {/* TEKS BERITA (KUALITAS JURNALISTIK PREMIUM) */}
+            {/* TEKS BERITA (BEBAS FORMAT & ANTI OVERFLOW) */}
             <div 
-              className="
-              max-w-none font-serif text-[#2b2b2b] dark:text-gray-300 
+              className={`
+              w-full max-w-full break-words font-serif text-[#2b2b2b] dark:text-gray-300 
               text-[17px] md:text-[20px] leading-[2] md:leading-[2.2] tracking-[0.01em]
               
-              /* 1. Memberi jarak nafas antar paragraf yang lega */
-              [&_p]:mb-7 md:[&_p]:mb-8 
+              [&>p]:mb-6 md:[&>p]:mb-8
               
-              /* 2. Efek Drop Cap (Huruf pertama membesar ala koran) */
-              [&>p:first-child]:first-letter:text-6xl md:[&>p:first-child]:first-letter:text-7xl 
-              [&>p:first-child]:first-letter:font-black [&>p:first-child]:first-letter:text-[#0f2136] dark:[&>p:first-child]:first-letter:text-yellow-500 
-              [&>p:first-child]:first-letter:mr-3 [&>p:first-child]:first-letter:float-left [&>p:first-child]:first-letter:mt-2
+              /* 2. Format WYSIWYG untuk Posisi Teks */
+              [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-justify]:text-justify
+              [&_[style*="text-align: center"]]:text-center [&_[style*="text-align: right"]]:text-right [&_[style*="text-align: justify"]]:text-justify
+              [&_[style*="text-align:center"]]:text-center [&_[style*="text-align:right"]]:text-right [&_[style*="text-align:justify"]]:text-justify
               
-              /* 3. Pengaturan elemen lain dari Editor (Tebal, Kutipan, Link, Gambar) */
-              [&_strong]:font-black [&_strong]:text-black dark:[&_strong]:text-white
-              [&_a]:text-blue-600 dark:[&_a]:text-yellow-400 [&_a]:font-bold hover:[&_a]:underline
-              [&_img]:rounded-2xl [&_img]:my-10 [&_img]:w-full [&_img]:shadow-md dark:[&_img]:border dark:[&_img]:border-gray-800
+              /* Format Gaya Teks Bawaan */
+              [&_b]:font-bold [&_strong]:font-bold
+              [&_i]:italic [&_em]:italic
+              [&_u]:underline
+              
+              /* Format Ukuran Teks */
+              [&_.ql-size-small]:text-sm [&_.ql-size-large]:text-2xl md:[&_.ql-size-large]:text-3xl [&_.ql-size-huge]:text-4xl md:[&_.ql-size-huge]:text-5xl
+
+              [&_a]:text-blue-600 dark:[&_a]:text-yellow-400 hover:[&_a]:underline
+              /* Cegah gambar dari editor menjebol batas kanan layar */
+              [&_img]:rounded-2xl [&_img]:my-8 [&_img]:max-w-full [&_img]:h-auto [&_img]:mx-auto [&_img]:shadow-md
+              
               [&_blockquote]:border-l-4 [&_blockquote]:border-yellow-500 [&_blockquote]:bg-gray-50 dark:[&_blockquote]:bg-[#15202b] 
-              [&_blockquote]:py-5 [&_blockquote]:px-6 [&_blockquote]:rounded-r-xl [&_blockquote]:italic [&_blockquote]:my-10 [&_blockquote]:text-gray-700 dark:[&_blockquote]:text-gray-400
-              "
+              [&_blockquote]:py-5 [&_blockquote]:px-6 [&_blockquote]:rounded-r-xl [&_blockquote]:italic [&_blockquote]:my-10
+              
+              ${isBararasa ? 'whitespace-pre-wrap' : ''}
+              `}
               dangerouslySetInnerHTML={{ __html: displayContent }} 
             />
 
-            {/* TAGS */}
             <div className="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800/60">
               {article.tags && article.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2.5 mb-8">
@@ -239,16 +248,32 @@ export default function DetailBerita() {
                 </div>
               )}
 
-              {/* KREDIT REDAKSI */}
+              {/* PERBAIKAN 4: Menampilkan Foto Redaksi */}
               {article.kredit && (
-                <div className="text-[13px] text-gray-600 dark:text-gray-400 space-y-1.5 mb-14 bg-gray-50 dark:bg-[#15202b] p-5 rounded-xl border border-gray-100 dark:border-gray-800">
-                  {article.kredit.editor && <p><span className="font-bold text-gray-800 dark:text-gray-200">Editor:</span> {article.kredit.editor}</p>}
-                  {article.kredit.fotografer && article.kredit.fotografer !== '-' && <p><span className="font-bold text-gray-800 dark:text-gray-200">Fotografer:</span> {article.kredit.fotografer}</p>}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-14 bg-gray-50 dark:bg-[#15202b] p-6 rounded-xl border border-gray-100 dark:border-gray-800">
+                  
+                  {/* Foto Profil Redaksi */}
+                  {article.kredit.fotoUrl && (
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-full overflow-hidden border-[3px] border-yellow-500 shadow-sm">
+                      <Image src={article.kredit.fotoUrl} alt="Foto Redaksi" fill className="object-cover" sizes="96px" />
+                    </div>
+                  )}
+
+                  <div className="text-[14px] text-gray-700 dark:text-gray-300 space-y-1.5 flex-1">
+                    {article.kredit.penulis && (
+                      <p><span className="font-bold text-[#0f2136] dark:text-gray-100">Penulis:</span> {article.kredit.penulis}</p>
+                    )}
+                    {article.kredit.editor && (
+                      <p><span className="font-bold text-[#0f2136] dark:text-gray-100">Editor:</span> {article.kredit.editor}</p>
+                    )}
+                    {article.kredit.fotografer && article.kredit.fotografer !== '-' && (
+                      <p><span className="font-bold text-[#0f2136] dark:text-gray-100">Fotografer:</span> {article.kredit.fotografer}</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* BERITA TERKAIT */}
             {relatedArticles.length > 0 && (
               <div className="mb-14 pt-8 border-t-[3px] border-gray-100 dark:border-gray-800/60">
                 <h3 className="text-xl md:text-2xl font-black font-serif text-[#0f2136] dark:text-white mb-6 flex items-center gap-3">
@@ -267,7 +292,6 @@ export default function DetailBerita() {
               </div>
             )}
 
-            {/* KOMENTAR */}
             <div className="bg-white dark:bg-[#0d1520] border border-gray-100 dark:border-gray-800 rounded-2xl p-6 md:p-8 shadow-sm">
               <h3 className="text-xl font-black font-serif text-[#0f2136] dark:text-white mb-8 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-yellow-500" /> Komentar ({article.commentCount || 0})
@@ -314,7 +338,6 @@ export default function DetailBerita() {
 
           </div>
 
-          {/* === KOLOM KANAN (SIDEBAR) === */}
           <div className="w-full lg:w-[32%] space-y-8 sticky top-24 self-start">
             <Sidebar menuName={article.category} />
           </div>

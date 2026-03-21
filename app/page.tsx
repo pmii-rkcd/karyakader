@@ -18,11 +18,18 @@ interface Article {
   tags?: string[];
 }
 
+// PERBAIKAN: Fungsi stripHtml dibuat lebih bersih untuk menghilangkan entitas HTML seperti &quot;
 const stripHtml = (htmlString: string) => {
   if (!htmlString) return '';
-  let text = htmlString.replace(/<[^>]*>?/gm, '');
-  text = text.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ').replace(/&amp;/g, '&');
-  return text;
+  let text = htmlString.replace(/<[^>]*>?/gm, ' '); // Ganti tag HTML dengan spasi agar kata tidak menempel
+  text = text.replace(/&nbsp;/g, ' ')
+             .replace(/\u00A0/g, ' ')
+             .replace(/&amp;/g, '&')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'")
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>');
+  return text.trim();
 };
 
 const CATEGORIES = [
@@ -39,7 +46,6 @@ export default function HomePage() {
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        // Limit diperbesar agar cukup mengisi 4 variasi model (sekitar 1+4+4+4+3)
         const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(30));
         const articlesSnapshot = await getDocs(articlesQuery);
         const fetchedArticles = articlesSnapshot.docs.map((doc) => ({
@@ -89,11 +95,10 @@ export default function HomePage() {
             {article.title}
           </h4>
         </Link>
-        <p className={`text-gray-500 dark:text-gray-400 mb-5 leading-relaxed ${isLarge ? 'text-[15px] line-clamp-4' : 'text-[13px] line-clamp-3'}`}>
+        <p className={`text-gray-500 dark:text-gray-400 mb-5 leading-relaxed ${isLarge ? 'text-[15px] line-clamp-4' : 'text-[13px] line-clamp-2'}`}>
           {stripHtml(article.content)}
         </p>
         
-        {/* INFO METADATA BAWAH */}
         <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
           <span className="flex items-center gap-1.5 truncate w-1/2">
             <User className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
@@ -110,20 +115,21 @@ export default function HomePage() {
 
   // 2. Kartu Horizontal Minimalis (Daftar List - Gambar Kiri, Teks Kanan)
   const renderHorizontalCard = (article: Article) => (
-    <Link href={`/berita/${article.slug}`} key={article.id} className="group flex items-start gap-4 md:gap-5 bg-transparent hover:bg-white dark:hover:bg-[#0d1520] p-3 rounded-2xl transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-800/60 hover:shadow-lg">
+    // PERBAIKAN: Overflow-hidden ditambahkan agar teks yang sangat panjang dipaksa terpotong (clamp)
+    <Link href={`/berita/${article.slug}`} key={article.id} className="group flex items-start gap-4 md:gap-5 bg-transparent hover:bg-white dark:hover:bg-[#0d1520] p-3 rounded-2xl transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-800/60 hover:shadow-lg overflow-hidden">
       <div className="relative w-28 md:w-[130px] lg:w-[150px] aspect-[4/3] rounded-xl overflow-hidden shrink-0 shadow-sm">
         <Image src={article.imageUrl} alt={article.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" sizes="150px" />
       </div>
-      <div className="flex-1 flex flex-col justify-center py-1">
+      <div className="flex-1 flex flex-col justify-center py-1 overflow-hidden">
         <h4 className="text-[15px] md:text-[17px] font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-2 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug">
           {article.title}
         </h4>
-        <p className="text-gray-500 dark:text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed hidden sm:block">
+        <p className="text-gray-500 dark:text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed hidden sm:block break-words">
           {stripHtml(article.content)}
         </p>
         <div className="flex items-center gap-3 text-[10px] md:text-[11px] text-gray-500 dark:text-gray-400 font-semibold mt-auto">
-          <span className="flex items-center gap-1 uppercase tracking-wide"><User className="w-3 h-3 text-yellow-500" /> {article.kredit?.penulis || 'Redaksi'}</span>
-          <span className="flex items-center gap-1 hidden md:flex"><Eye className="w-3 h-3" /> {article.views || 0}</span>
+          <span className="flex items-center gap-1 uppercase tracking-wide truncate"><User className="w-3 h-3 text-yellow-500 shrink-0" /> <span className="truncate">{article.kredit?.penulis || 'Redaksi'}</span></span>
+          <span className="flex items-center gap-1 hidden md:flex shrink-0"><Eye className="w-3 h-3" /> {article.views || 0}</span>
         </div>
       </div>
     </Link>
@@ -153,7 +159,7 @@ export default function HomePage() {
                     {headline.title}
                   </h2>
                 </Link>
-                <p className="text-gray-300 text-sm md:text-base mt-4 line-clamp-2 md:line-clamp-3 font-medium leading-relaxed">
+                <p className="text-gray-300 text-sm md:text-base mt-4 line-clamp-2 md:line-clamp-3 font-medium leading-relaxed break-words">
                   {stripHtml(headline.content)}
                 </p>
                 
