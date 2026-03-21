@@ -3,6 +3,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -51,7 +52,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   });
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans overflow-x-hidden">
+    // PERBAIKAN: Dibuat lebih natural, overflow-x-hidden cukup di parent utama agar tidak muncul scroll horizontal
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans overflow-x-hidden">
       
       {/* === TOP BAR === */}
       <div className="bg-[#0f2136] dark:bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-8 flex flex-wrap justify-between items-center border-b border-gray-800 gap-2 transition-colors duration-500 relative z-[70]">
@@ -80,43 +82,46 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* === HEADER === */}
-      <header className="bg-white dark:bg-[#0d1520] py-5 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm dark:shadow-none dark:border-b dark:border-gray-800 gap-5 relative z-[60] transition-colors duration-500">
-        <Link href="/" className="flex items-center gap-4 w-full md:w-auto justify-center md:justify-start group">
+      <header className="bg-white dark:bg-[#0d1520] py-5 px-3 sm:px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm dark:shadow-none dark:border-b dark:border-gray-800 gap-5 relative z-[60] transition-colors duration-500 w-full">
+        <Link href="/" className="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-center md:justify-start group">
           {settings.logoUrl ? (
-            <img src={settings.logoUrl} alt="Logo" className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover border-2 border-yellow-500 group-hover:scale-105 transition-transform duration-300 shadow-md" />
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0">
+               <Image src={settings.logoUrl} alt="Logo" fill className="rounded-full object-cover border-2 border-yellow-500 group-hover:scale-105 transition-transform duration-300 shadow-md" />
+            </div>
           ) : (
-            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#0f2136] rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[10px] shadow-md">LOGO</div>
+            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 bg-[#0f2136] rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[10px] shadow-md">LOGO</div>
           )}
-          <div>
-            <h1 className="font-serif text-2xl md:text-3xl font-black text-[#0f2136] dark:text-white tracking-tight group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors">{settings.webName || 'KARYA KADER'}</h1>
-            <div className="bg-[#0f2136] text-yellow-500 text-[10px] px-2.5 py-1 mt-1 rounded font-bold uppercase tracking-widest shadow-sm">{settings.tagline || 'PR. PMII "KAWAH" CHONDRODIMUKO'}</div>
+          <div className="text-center md:text-left flex-1 min-w-0">
+            <h1 className="font-serif text-xl sm:text-2xl md:text-3xl font-black text-[#0f2136] dark:text-white tracking-tight group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors truncate">{settings.webName || 'KARYA KADER'}</h1>
+            <div className="bg-[#0f2136] text-yellow-500 text-[9px] sm:text-[10px] px-2 py-1 sm:px-2.5 mt-1 rounded font-bold uppercase tracking-widest shadow-sm inline-block truncate max-w-full">{settings.tagline || 'PR. PMII "KAWAH" CHONDRODIMUKO'}</div>
           </div>
         </Link>
-        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-72">
+        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-72 mt-2 md:mt-0">
           <input type="text" placeholder="Cari berita..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-gray-100 dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2.5 px-5 pr-12 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-inner border border-transparent dark:border-gray-800" required />
           <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 transition-colors"><Search className="w-4 h-4" /></button>
         </form>
       </header>
 
       {/* === NAVBAR === */}
-      <nav className="bg-[#0f2136]/95 dark:bg-[#0a0f18]/90 backdrop-blur-md text-white py-3 px-4 md:px-8 border-b-[3px] border-yellow-500 shadow-md sticky top-0 z-[50] transition-colors duration-500 overflow-x-auto hide-scrollbar">
-        <ul className="flex flex-nowrap md:flex-wrap gap-1 md:gap-2 text-[13px] font-bold uppercase tracking-widest w-max md:w-auto mx-auto md:mx-0">
-          <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-4 py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
-          <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-4 py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
-          <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-4 py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
-          <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-4 py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
-          <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-4 py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
-          <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-4 py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
+      <nav className="bg-[#0f2136]/95 dark:bg-[#0a0f18]/90 backdrop-blur-md text-white border-b-[3px] border-yellow-500 shadow-md sticky top-0 z-[50] transition-colors duration-500 overflow-x-auto w-full no-scrollbar">
+        <ul className="flex flex-nowrap items-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] font-bold uppercase tracking-widest w-max min-w-full px-4 py-3 md:px-8 justify-start md:justify-center">
+          <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
+          <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
+          <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
+          <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
+          <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
+          <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
         </ul>
       </nav>
 
       {/* === MAIN CONTENT === */}
+      {/* PERBAIKAN: Menghapus overflow-hidden agar fitur Sidebar Sticky tetap jalan! */}
       <div className="flex-1 flex flex-col w-full relative min-w-0">
         {children}
       </div>
 
       {/* === FOOTER === */}
-      <footer className="bg-[#0a1727] dark:bg-[#05080f] text-gray-400 py-16 px-4 md:px-8 border-t-[4px] border-yellow-500 transition-colors duration-500 relative z-10">
+      <footer className="bg-[#0a1727] dark:bg-[#05080f] text-gray-400 py-16 px-4 md:px-8 border-t-[4px] border-yellow-500 transition-colors duration-500 relative z-10 w-full">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
           
           <div className="space-y-6">
@@ -140,7 +145,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <ul className="space-y-4 text-sm font-medium">
               <li><a href={settings.instagram || '#'} target="_blank" className="flex items-center gap-3 hover:text-yellow-400 transition-colors"><Instagram className="w-4 h-4" /> Instagram</a></li>
               <li><a href={settings.youtube || '#'} target="_blank" className="flex items-center gap-3 hover:text-yellow-400 transition-colors"><Youtube className="w-4 h-4" /> YouTube</a></li>
-              {/* PERBAIKAN: Menambahkan link TikTok di Footer */}
               <li>
                 <a href={settings.tiktok || '#'} target="_blank" className="flex items-center gap-3 hover:text-yellow-400 transition-colors">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg> 
@@ -157,7 +161,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <li><Link href="/" className="hover:text-yellow-400 transition-colors">Beranda</Link></li>
               <li><Link href="/bararasa" className="hover:text-yellow-400 transition-colors">Bararasa</Link></li>
               <li><Link href="/kabar" className="hover:text-yellow-400 transition-colors">Kabar Dari Kawah</Link></li>
-              {/* PERBAIKAN: Menambahkan link Mutiara Chondro di Navigasi Footer */}
               <li><Link href="/mutiara" className="hover:text-yellow-400 transition-colors">Mutiara Chondro</Link></li>
               <li><Link href="/nalar" className="hover:text-yellow-400 transition-colors">Nalar Tempaan</Link></li>
               <li><Link href="/tentang" className="hover:text-yellow-400 transition-colors">Tentang Kami</Link></li>
@@ -181,6 +184,17 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <p className="uppercase tracking-widest">{settings.tagline || 'PR. PMII "KAWAH" CHONDRODIMUKO'}</p>
         </div>
       </footer>
+      
+      {/* GLOBAL CSS: Menyembunyikan scrollbar di navbar tapi tetap bisa di-swipe */}
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }

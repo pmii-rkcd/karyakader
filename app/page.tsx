@@ -64,7 +64,7 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[80vh] items-center justify-center bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500">
+      <div className="flex min-h-[80vh] items-center justify-center bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 w-full overflow-hidden">
         <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }} className="text-center flex flex-col items-center">
            <Loader2 className="w-12 h-12 text-yellow-500 animate-spin mb-4" />
            <p className="text-[#0f2136] dark:text-gray-300 font-serif font-bold tracking-widest uppercase text-sm">Memuat Arsip...</p>
@@ -76,24 +76,22 @@ export default function HomePage() {
   const headline = articles.length > 0 ? articles[0] : null;
   const restArticles = articles.length > 1 ? articles.slice(1) : [];
 
-  // 1. Kartu Standar (Gambar di atas, Teks di bawah)
+  // 1. Kartu Standar
   const renderStandardCard = (article: Article, isLarge = false) => (
-    // PERBAIKAN MOBILE: min-w-0 untuk mencegah overflow
-    <div key={article.id} className="bg-white dark:bg-[#0d1520] rounded-2xl border border-gray-100 dark:border-gray-800/60 overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col h-full min-w-0">
-      {/* PERBAIKAN MOBILE: Penyesuaian tinggi gambar (h-48 -> sm:h-56) */}
-      <div className={`relative w-full overflow-hidden ${isLarge ? 'h-56 sm:h-72 lg:h-[350px]' : 'h-48 sm:h-56'}`}>
+    <div key={article.id} className="bg-white dark:bg-[#0d1520] rounded-2xl border border-gray-100 dark:border-gray-800/60 overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col h-full min-w-0 max-w-full">
+      <div className={`relative w-full overflow-hidden shrink-0 ${isLarge ? 'h-56 sm:h-72 lg:h-[350px]' : 'h-48 sm:h-56'}`}>
         <Image src={article.imageUrl} alt={article.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" sizes="(max-width: 768px) 100vw, 33vw" />
         <span className="absolute top-3 left-3 backdrop-blur-md bg-white/90 dark:bg-black/80 text-[#0f2136] dark:text-yellow-500 text-[9px] font-bold px-3 py-1.5 uppercase tracking-wider shadow-sm rounded-md">
           {article.category}
         </span>
       </div>
-      <div className="p-4 sm:p-5 flex flex-col flex-1">
+      <div className="p-4 sm:p-5 flex flex-col flex-1 min-w-0">
         <Link href={`/berita/${article.slug}`}>
           <h4 className={`font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-2 sm:mb-3 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug ${isLarge ? 'text-xl sm:text-2xl lg:text-[28px]' : 'text-base sm:text-[17px]'}`}>
             {article.title}
           </h4>
         </Link>
-        <p className={`text-gray-500 dark:text-gray-400 mb-4 sm:mb-5 leading-relaxed line-clamp-2 ${isLarge ? 'text-sm sm:text-[15px]' : 'text-xs sm:text-[13px]'}`}>
+        <p className={`text-gray-500 dark:text-gray-400 mb-4 sm:mb-5 leading-relaxed line-clamp-2 break-words ${isLarge ? 'text-sm sm:text-[15px]' : 'text-xs sm:text-[13px]'}`}>
           {stripHtml(article.content)}
         </p>
         <div className="mt-auto pt-3 sm:pt-4 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
@@ -109,57 +107,53 @@ export default function HomePage() {
     </div>
   );
 
-  // 2. Kartu Horizontal Minimalis
+  // 2. Kartu Horizontal
   const renderHorizontalCard = (article: Article) => (
-    // PERBAIKAN MOBILE: Padding diperkecil di HP (p-2 sm:p-3), gap disesuaikan
-    <Link href={`/berita/${article.slug}`} key={article.id} className="group flex items-start gap-3 sm:gap-4 md:gap-5 bg-transparent hover:bg-white dark:hover:bg-[#0d1520] p-2 sm:p-3 rounded-2xl transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-800/60 overflow-hidden">
-      {/* PERBAIKAN MOBILE: Ukuran gambar mengecil di HP (w-24 -> sm:w-28 -> md:w-[130px]) */}
+    <Link href={`/berita/${article.slug}`} key={article.id} className="group flex items-start gap-3 sm:gap-4 md:gap-5 bg-transparent hover:bg-white dark:hover:bg-[#0d1520] p-2 sm:p-3 rounded-2xl transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-800/60 overflow-hidden w-full max-w-full">
       <div className="relative w-24 sm:w-28 md:w-[130px] lg:w-[150px] aspect-[4/3] rounded-xl overflow-hidden shrink-0 shadow-sm">
         <Image src={article.imageUrl} alt={article.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" sizes="(max-width: 768px) 100px, 150px" />
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
-        <h4 className="text-[14px] sm:text-[15px] md:text-[17px] font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-1 sm:mb-2 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug">
+        <h4 className="text-[14px] sm:text-[15px] md:text-[17px] font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-1 sm:mb-2 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug break-words">
           {article.title}
         </h4>
-        {/* PERBAIKAN MOBILE: line-clamp-2 di HP, line-clamp-3 di Desktop */}
         <div className="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs mb-2 sm:mb-3 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
           {stripHtml(article.content)}
         </div>
         <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[10px] md:text-[11px] text-gray-500 dark:text-gray-400 font-semibold mt-auto">
-          <span className="flex items-center gap-1 uppercase truncate"><User className="w-3 h-3 text-yellow-500 shrink-0" /> {article.kredit?.penulis || 'Redaksi'}</span>
-          <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {article.views || 0}</span>
+          <span className="flex items-center gap-1 uppercase truncate"><User className="w-3 h-3 text-yellow-500 shrink-0" /> <span className="truncate">{article.kredit?.penulis || 'Redaksi'}</span></span>
+          <span className="flex items-center gap-1 shrink-0"><Eye className="w-3 h-3" /> {article.views || 0}</span>
         </div>
       </div>
     </Link>
   );
 
   return (
-    // PERBAIKAN MOBILE: Padding kontainer utama disesuaikan (px-4 md:px-8 py-6 md:py-10)
-    <main className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col xl:flex-row gap-8 md:gap-10 overflow-x-hidden">
+    // PERBAIKAN MOBILE: min-w-0 max-w-full overflow-x-hidden pada kontainer paling atas Halaman Beranda
+    <main className="max-w-7xl w-full mx-auto px-3 sm:px-4 md:px-8 py-6 md:py-10 flex flex-col xl:flex-row gap-8 md:gap-10 overflow-x-hidden min-w-0 max-w-[100vw] box-border">
       
-      <div className="w-full xl:w-[68%] space-y-12 md:space-y-16 min-w-0">
+      <div className="w-full xl:w-[68%] space-y-12 md:space-y-16 min-w-0 max-w-full overflow-hidden">
         
         {/* HEADLINE */}
         {headline && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="group">
-            {/* PERBAIKAN MOBILE: Tinggi headline disesuaikan untuk HP (h-[300px] sm:h-[380px]) */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="group w-full max-w-full">
             <div className="relative w-full h-[300px] sm:h-[380px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl md:shadow-2xl mb-2 border border-gray-100 dark:border-gray-800">
               <Image src={headline.imageUrl} alt={headline.title} fill priority className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="(max-width: 768px) 100vw, 70vw" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-              {/* PERBAIKAN MOBILE: Padding tulisan headline dikurangi di HP (p-4 sm:p-6) */}
-              <div className="absolute bottom-0 left-0 p-4 sm:p-6 md:p-10 w-full">
-                <Link href={`/berita/${headline.slug}`}>
-                  <h2 className="text-xl sm:text-2xl md:text-4xl md:leading-[1.3] font-serif font-black text-white group-hover:text-yellow-400 transition-colors line-clamp-2 sm:line-clamp-3">
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+              
+              <div className="absolute bottom-0 left-0 p-4 sm:p-6 md:p-10 w-full min-w-0 flex flex-col justify-end">
+                <Link href={`/berita/${headline.slug}`} className="w-full block">
+                  {/* PERBAIKAN MOBILE: text-lg di HP agar tidak terlalu raksasa, leading-snug, dan break-words */}
+                  <h2 className="text-lg sm:text-2xl md:text-4xl leading-snug md:leading-[1.3] font-serif font-black text-white group-hover:text-yellow-400 transition-colors line-clamp-2 sm:line-clamp-3 break-words w-full">
                     {headline.title}
                   </h2>
                 </Link>
-                {/* PERBAIKAN MOBILE: Deskripsi disembunyikan di layar sangat kecil agar tidak penuh */}
-                <p className="text-gray-200 text-xs sm:text-sm md:text-base mt-2 sm:mt-4 line-clamp-2 font-medium leading-relaxed max-w-3xl hidden xs:block">
+                <p className="text-gray-200 text-xs sm:text-sm md:text-base mt-2 sm:mt-4 line-clamp-2 font-medium leading-relaxed w-full break-words hidden sm:block">
                   {stripHtml(headline.content)}
                 </p>
                 <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-[10px] sm:text-[11px] md:text-xs text-gray-300 mt-3 sm:mt-6 font-semibold">
-                  <span className="flex items-center gap-1.5"><User className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500" />{headline.kredit?.penulis || 'Redaksi'}</span>
-                  <span className="flex items-center gap-1.5"><Eye className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500" />{headline.views || 0} Dibaca</span>
+                  <span className="flex items-center gap-1.5 truncate"><User className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500 shrink-0" /> <span className="truncate">{headline.kredit?.penulis || 'Redaksi'}</span></span>
+                  <span className="flex items-center gap-1.5 shrink-0"><Eye className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500" />{headline.views || 0} Dibaca</span>
                 </div>
               </div>
             </div>
@@ -174,31 +168,29 @@ export default function HomePage() {
           if (categoryArticles.length === 0) return null;
 
           return (
-            <motion.div key={cat.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+            <motion.div key={cat.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="w-full max-w-full min-w-0">
               <div className="flex items-center gap-3 border-b-2 border-gray-200 dark:border-gray-800 pb-2 mb-6 md:mb-8">
-                <div className="w-1.5 md:w-2 h-5 md:h-6 bg-yellow-500 rounded-full"></div>
-                <h3 className="font-serif text-[#0f2136] dark:text-white font-black text-xl md:text-[22px] tracking-wide uppercase">{cat.name}</h3>
+                <div className="w-1.5 md:w-2 h-5 md:h-6 bg-yellow-500 rounded-full shrink-0"></div>
+                <h3 className="font-serif text-[#0f2136] dark:text-white font-black text-xl md:text-[22px] tracking-wide uppercase truncate">{cat.name}</h3>
               </div>
               
               {layoutType === 0 ? (
-                <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-                  <div className="w-full md:w-[55%]">{renderStandardCard(categoryArticles[0], true)}</div>
-                  {/* PERBAIKAN MOBILE: Mengurangi gap list berita di HP */}
-                  <div className="w-full md:w-[45%] flex flex-col gap-2 sm:gap-4">
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8 w-full">
+                  <div className="w-full md:w-[55%] min-w-0">{renderStandardCard(categoryArticles[0], true)}</div>
+                  <div className="w-full md:w-[45%] flex flex-col gap-2 sm:gap-4 min-w-0">
                     {categoryArticles.slice(1, 4).map(article => renderHorizontalCard(article))}
                   </div>
                 </div>
               ) : layoutType === 1 ? (
-                // PERBAIKAN MOBILE: Mengubah gap grid
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 md:gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 md:gap-8 w-full">
                   {categoryArticles.slice(0, 4).map(article => renderStandardCard(article))}
                 </div>
               ) : layoutType === 2 ? (
-                <div className="flex flex-col gap-2 sm:gap-4">
+                <div className="flex flex-col gap-2 sm:gap-4 w-full">
                   {categoryArticles.map(article => renderHorizontalCard(article))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 sm:gap-6 w-full">
                   {categoryArticles.slice(0, 3).map(article => renderStandardCard(article))}
                 </div>
               )}
@@ -214,7 +206,7 @@ export default function HomePage() {
       </div>
 
       {/* SIDEBAR */}
-      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full xl:w-[32%] xl:sticky top-24 self-start min-w-0">
+      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full xl:w-[32%] xl:sticky top-24 self-start min-w-0 max-w-full overflow-hidden">
         <Sidebar menuName="Terkini & Populer" />
       </motion.div>
     </main>
