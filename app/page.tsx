@@ -18,18 +18,26 @@ interface Article {
   tags?: string[];
 }
 
-// PERBAIKAN SAKTI: Membersihkan HTML dan menerjemahkan simbol
-const stripHtml = (htmlString: string) => {
+// PERBAIKAN: Membersihkan HTML, menerjemahkan simbol, DAN membatasi jumlah karakter (maksimal 130 karakter)
+const stripHtmlAndTruncate = (htmlString: string, maxLength: number = 130) => {
   if (!htmlString) return '';
   let text = htmlString.replace(/<\/?[^>]+(>|$)/g, " ");
   text = text.replace(/&nbsp;/g, ' ')
              .replace(/&quot;/g, '"')
+             .replace(/&ldquo;/g, '"')
+             .replace(/&rdquo;/g, '"')
              .replace(/&amp;/g, '&')
              .replace(/&#39;/g, "'")
              .replace(/&lt;/g, '<')
              .replace(/&gt;/g, '>')
-             .replace(/\s+/g, ' '); 
-  return text.trim();
+             .replace(/\s+/g, ' ')
+             .trim();
+             
+  // Jika teks lebih panjang dari batas, potong dan tambahkan "..."
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + '...';
+  }
+  return text;
 };
 
 const CATEGORIES = [
@@ -91,8 +99,9 @@ export default function HomePage() {
             {article.title}
           </h4>
         </Link>
-        <p className={`text-gray-500 dark:text-gray-400 mb-4 sm:mb-5 leading-relaxed line-clamp-2 break-words ${isLarge ? 'text-sm sm:text-[15px]' : 'text-xs sm:text-[13px]'}`}>
-          {stripHtml(article.content)}
+        {/* MENGGUNAKAN FUNGSI BARU */}
+        <p className={`text-gray-500 dark:text-gray-400 mb-4 sm:mb-5 leading-relaxed break-words ${isLarge ? 'text-sm sm:text-[15px]' : 'text-xs sm:text-[13px]'}`}>
+          {stripHtmlAndTruncate(article.content, isLarge ? 140 : 90)}
         </p>
         <div className="mt-auto pt-3 sm:pt-4 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
           <span className="flex items-center gap-1.5 truncate w-1/2">
@@ -117,8 +126,9 @@ export default function HomePage() {
         <h4 className="text-[14px] sm:text-[15px] md:text-[17px] font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-1 sm:mb-2 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug break-words">
           {article.title}
         </h4>
-        <div className="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs mb-2 sm:mb-3 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
-          {stripHtml(article.content)}
+        {/* MENGGUNAKAN FUNGSI BARU */}
+        <div className="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs mb-2 sm:mb-3 leading-relaxed break-words">
+          {stripHtmlAndTruncate(article.content, 80)}
         </div>
         <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[10px] md:text-[11px] text-gray-500 dark:text-gray-400 font-semibold mt-auto">
           <span className="flex items-center gap-1 uppercase truncate"><User className="w-3 h-3 text-yellow-500 shrink-0" /> <span className="truncate">{article.kredit?.penulis || 'Redaksi'}</span></span>
@@ -129,7 +139,6 @@ export default function HomePage() {
   );
 
   return (
-    // PERBAIKAN MOBILE: min-w-0 max-w-full overflow-x-hidden pada kontainer paling atas Halaman Beranda
     <main className="max-w-7xl w-full mx-auto px-3 sm:px-4 md:px-8 py-6 md:py-10 flex flex-col xl:flex-row gap-8 md:gap-10 overflow-x-hidden min-w-0 max-w-[100vw] box-border">
       
       <div className="w-full xl:w-[68%] space-y-12 md:space-y-16 min-w-0 max-w-full overflow-hidden">
@@ -143,13 +152,13 @@ export default function HomePage() {
               
               <div className="absolute bottom-0 left-0 p-4 sm:p-6 md:p-10 w-full min-w-0 flex flex-col justify-end">
                 <Link href={`/berita/${headline.slug}`} className="w-full block">
-                  {/* PERBAIKAN MOBILE: text-lg di HP agar tidak terlalu raksasa, leading-snug, dan break-words */}
                   <h2 className="text-lg sm:text-2xl md:text-4xl leading-snug md:leading-[1.3] font-serif font-black text-white group-hover:text-yellow-400 transition-colors line-clamp-2 sm:line-clamp-3 break-words w-full">
                     {headline.title}
                   </h2>
                 </Link>
-                <p className="text-gray-200 text-xs sm:text-sm md:text-base mt-2 sm:mt-4 line-clamp-2 font-medium leading-relaxed w-full break-words hidden sm:block">
-                  {stripHtml(headline.content)}
+                {/* MENGGUNAKAN FUNGSI BARU UNTUK HEADLINE */}
+                <p className="text-gray-200 text-xs sm:text-sm md:text-base mt-2 sm:mt-4 font-medium leading-relaxed w-full break-words hidden sm:block">
+                  {stripHtmlAndTruncate(headline.content, 200)}
                 </p>
                 <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-[10px] sm:text-[11px] md:text-xs text-gray-300 mt-3 sm:mt-6 font-semibold">
                   <span className="flex items-center gap-1.5 truncate"><User className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-yellow-500 shrink-0" /> <span className="truncate">{headline.kredit?.penulis || 'Redaksi'}</span></span>

@@ -52,13 +52,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   });
 
   return (
-    // PERBAIKAN: Dibuat lebih natural, overflow-x-hidden cukup di parent utama agar tidak muncul scroll horizontal
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans overflow-x-hidden">
+    <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans min-w-0 max-w-[100vw] overflow-x-hidden">
       
       {/* === TOP BAR === */}
       <div className="bg-[#0f2136] dark:bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-8 flex flex-wrap justify-between items-center border-b border-gray-800 gap-2 transition-colors duration-500 relative z-[70]">
         <div className="flex items-center gap-2 font-medium tracking-wide">
-          <Calendar className="w-3.5 h-3.5 text-yellow-500" />
+          <Calendar className="w-3.5 h-3.5 text-yellow-500 hidden sm:block" />
           <span>{currentDate}</span>
         </div>
         
@@ -82,8 +81,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* === HEADER === */}
-      <header className="bg-white dark:bg-[#0d1520] py-5 px-3 sm:px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm dark:shadow-none dark:border-b dark:border-gray-800 gap-5 relative z-[60] transition-colors duration-500 w-full">
-        <Link href="/" className="flex items-center gap-3 sm:gap-4 w-full md:w-auto justify-center md:justify-start group">
+      <header className="bg-white dark:bg-[#0d1520] py-5 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm dark:shadow-none dark:border-b dark:border-gray-800 gap-5 relative z-[60] transition-colors duration-500 w-full">
+        {/* PERBAIKAN: Dibuat justify-start untuk md dan justify-center dihapus agar flex nempel ke kiri */}
+        <Link href="/" className="flex items-center gap-3 sm:gap-4 w-full md:w-auto group">
           {settings.logoUrl ? (
             <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0">
                <Image src={settings.logoUrl} alt="Logo" fill className="rounded-full object-cover border-2 border-yellow-500 group-hover:scale-105 transition-transform duration-300 shadow-md" />
@@ -91,7 +91,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           ) : (
             <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 bg-[#0f2136] rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[10px] shadow-md">LOGO</div>
           )}
-          <div className="text-center md:text-left flex-1 min-w-0">
+          <div className="text-left flex-1 min-w-0">
             <h1 className="font-serif text-xl sm:text-2xl md:text-3xl font-black text-[#0f2136] dark:text-white tracking-tight group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors truncate">{settings.webName || 'KARYA KADER'}</h1>
             <div className="bg-[#0f2136] text-yellow-500 text-[9px] sm:text-[10px] px-2 py-1 sm:px-2.5 mt-1 rounded font-bold uppercase tracking-widest shadow-sm inline-block truncate max-w-full">{settings.tagline || 'PR. PMII "KAWAH" CHONDRODIMUKO'}</div>
           </div>
@@ -115,7 +115,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* === MAIN CONTENT === */}
-      {/* PERBAIKAN: Menghapus overflow-hidden agar fitur Sidebar Sticky tetap jalan! */}
       <div className="flex-1 flex flex-col w-full relative min-w-0">
         {children}
       </div>
