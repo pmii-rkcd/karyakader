@@ -16,7 +16,6 @@ interface Article {
   id: string; title: string; content: string; category: string; imageUrl: string;
   authorEmail: string; createdAt: any; slug: string; dateline?: string; tags?: string[];
   views?: number; commentCount?: number;
-  // PERBAIKAN 4: Menambahkan field fotoUrl agar TS tidak error saat dipanggil
   kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; fotoUrl?: string; };
 }
 
@@ -134,28 +133,21 @@ export default function DetailBerita() {
 
   if (!isBararasa) {
     displayContent = displayContent.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
-    
     if (article.dateline) {
-      displayContent = displayContent.replace(
-        /<p[^>]*>/i, 
-        (match) => `${match}<strong class="font-bold">${article.dateline}, Karyakader.id</strong> &mdash; `
-      );
+      displayContent = displayContent.replace(/<p[^>]*>/i, (match) => `${match}<strong class="font-bold">${article.dateline}, Karyakader.id</strong> &mdash; `);
     } else {
-      displayContent = displayContent.replace(
-        /<p[^>]*>/i, 
-        (match) => `${match}<strong class="font-bold">Karyakader.id</strong> &mdash; `
-      );
+      displayContent = displayContent.replace(/<p[^>]*>/i, (match) => `${match}<strong class="font-bold">Karyakader.id</strong> &mdash; `);
     }
   }
 
   return (
-    /* PERBAIKAN 1 & 3: pt-28 untuk cegah header tabrakan, overflow-x-hidden untuk matikan horizontal scroll */
-    <main className="min-h-screen bg-white dark:bg-[#0a0f18] pb-16 pt-28 md:pt-32 overflow-x-hidden transition-colors duration-500 font-sans">
+    <main className="min-h-screen bg-white dark:bg-[#0a0f18] pb-16 pt-10 overflow-x-hidden transition-colors duration-500 font-sans">
       
       <article className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-12">
           
-          <div className="w-full lg:w-[68%]">
+          {/* KOLOM KIRI: min-w-0 untuk mencegah overflow-x mendesak layar */}
+          <div className="w-full lg:w-[68%] min-w-0">
             
             <div className="flex items-center gap-2 text-[11px] mb-6 font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800/60 pb-4">
               <Link href="/" className="hover:text-[#0f2136] dark:hover:text-yellow-400 transition-colors">Beranda</Link>
@@ -163,7 +155,7 @@ export default function DetailBerita() {
               <span className="text-blue-600 dark:text-yellow-500">{article.category}</span>
             </div>
 
-            <h1 className="text-3xl md:text-[42px] font-serif font-black text-[#111827] dark:text-gray-100 mt-2 mb-6 leading-[1.2] tracking-tight">
+            <h1 className="text-3xl md:text-[42px] font-serif font-black text-[#111827] dark:text-gray-100 mt-2 mb-6 leading-[1.2] tracking-tight break-words">
               {article.title}
             </h1>
             
@@ -204,29 +196,31 @@ export default function DetailBerita() {
               )}
             </div>
 
-            {/* TEKS BERITA (BEBAS FORMAT & ANTI OVERFLOW) */}
+            {/* TEKS BERITA (BEBAS FORMAT & ANTI OVERFLOW KANAN) */}
             <div 
               className={`
-              w-full max-w-full break-words font-serif text-[#2b2b2b] dark:text-gray-300 
+              w-full max-w-full font-serif text-[#2b2b2b] dark:text-gray-300 
               text-[17px] md:text-[20px] leading-[2] md:leading-[2.2] tracking-[0.01em]
               
+              /* PENGUNCI LAYAR KANAN */
+              break-words [word-break:break-word] overflow-wrap-anywhere
+
               [&>p]:mb-6 md:[&>p]:mb-8
               
-              /* 2. Format WYSIWYG untuk Posisi Teks */
+              /* FORMATTING EDITOR */
               [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-justify]:text-justify
               [&_[style*="text-align: center"]]:text-center [&_[style*="text-align: right"]]:text-right [&_[style*="text-align: justify"]]:text-justify
               [&_[style*="text-align:center"]]:text-center [&_[style*="text-align:right"]]:text-right [&_[style*="text-align:justify"]]:text-justify
               
-              /* Format Gaya Teks Bawaan */
               [&_b]:font-bold [&_strong]:font-bold
               [&_i]:italic [&_em]:italic
               [&_u]:underline
               
-              /* Format Ukuran Teks */
               [&_.ql-size-small]:text-sm [&_.ql-size-large]:text-2xl md:[&_.ql-size-large]:text-3xl [&_.ql-size-huge]:text-4xl md:[&_.ql-size-huge]:text-5xl
 
               [&_a]:text-blue-600 dark:[&_a]:text-yellow-400 hover:[&_a]:underline
-              /* Cegah gambar dari editor menjebol batas kanan layar */
+              
+              /* CEGAH GAMBAR EDITOR NEMBUS KANAN */
               [&_img]:rounded-2xl [&_img]:my-8 [&_img]:max-w-full [&_img]:h-auto [&_img]:mx-auto [&_img]:shadow-md
               
               [&_blockquote]:border-l-4 [&_blockquote]:border-yellow-500 [&_blockquote]:bg-gray-50 dark:[&_blockquote]:bg-[#15202b] 
@@ -248,14 +242,13 @@ export default function DetailBerita() {
                 </div>
               )}
 
-              {/* PERBAIKAN 4: Menampilkan Foto Redaksi */}
+              {/* FOTO PROFIL REDAKSI */}
               {article.kredit && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-14 bg-gray-50 dark:bg-[#15202b] p-6 rounded-xl border border-gray-100 dark:border-gray-800">
                   
-                  {/* Foto Profil Redaksi */}
                   {article.kredit.fotoUrl && (
                     <div className="relative w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-full overflow-hidden border-[3px] border-yellow-500 shadow-sm">
-                      <Image src={article.kredit.fotoUrl} alt="Foto Redaksi" fill className="object-cover" sizes="96px" />
+                      <Image src={article.kredit.fotoUrl} alt="Foto Profil" fill className="object-cover" sizes="96px" />
                     </div>
                   )}
 

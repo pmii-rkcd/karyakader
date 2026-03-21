@@ -1,3 +1,4 @@
+// app/mutiara/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,15 +17,23 @@ interface Article {
   kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; };
 }
 
+// PERBAIKAN SAKTI: Membersihkan HTML dan menerjemahkan simbol (seperti &quot;) menjadi teks asli
 const stripHtml = (htmlString: string) => {
   if (!htmlString) return '';
-  let text = htmlString.replace(/<[^>]*>?/gm, '');
-  text = text.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' '); 
-  text = text.replace(/&amp;/g, '&');
-  return text;
+  // 1. Ganti tag block menjadi spasi agar teks tidak menempel
+  let text = htmlString.replace(/<\/?[^>]+(>|$)/g, " ");
+  // 2. Bereskan simbol-simbol HTML yang muncul sebagai kode
+  text = text.replace(/&nbsp;/g, ' ')
+             .replace(/&quot;/g, '"')
+             .replace(/&amp;/g, '&')
+             .replace(/&#39;/g, "'")
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/\s+/g, ' '); // Ringkas spasi berlebih
+  return text.trim();
 };
 
-export default function KabarPage() {
+export default function MutiaraPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -32,9 +41,8 @@ export default function KabarPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   
-  const BATCH_SIZE = 4;
+  const BATCH_SIZE = 6; // Menggunakan kelipatan 2 agar grid tetap rapi
 
-  // 🔥 GANTI NAMA KATEGORI DI BAWAH INI UNTUK HALAMAN LAIN (Contoh: "Bararasa")
   const KATEGORI_HALAMAN = "Mutiara Chondrodimuko"; 
 
   useEffect(() => {
@@ -136,13 +144,15 @@ export default function KabarPage() {
                     </span>
                   </div>
                   
-                  <div className="p-6 flex flex-col flex-1">
+                  <div className="p-6 flex flex-col flex-1 min-w-0">
                     <Link href={`/berita/${article.slug}`}>
                       <h3 className="text-[19px] font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-3 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug">
                         {article.title}
                       </h3>
                     </Link>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-5 line-clamp-3 leading-relaxed">
+                    
+                    {/* PERBAIKAN: line-clamp-3 untuk membatasi deskripsi dan stripHtml yang bersih */}
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-5 line-clamp-3 leading-relaxed break-words">
                       {stripHtml(article.content)}
                     </p>
                     
@@ -179,22 +189,12 @@ export default function KabarPage() {
                 disabled={isLoadingMore}
                 className="inline-flex items-center justify-center gap-2 bg-white dark:bg-[#15202b] border-2 border-[#0f2136] dark:border-gray-700 text-[#0f2136] dark:text-gray-200 px-8 py-3.5 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-[#0f2136] dark:hover:bg-yellow-500 hover:text-white dark:hover:text-[#0f2136] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group shadow-sm hover:shadow-lg"
               >
-                {isLoadingMore ? (
-                  <>
-                    <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" />
-                    Memuat...
-                  </>
-                ) : (
-                  <>
-                    Tampilkan Lebih Banyak 
-                    <ChevronDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
-                  </>
-                )}
+                {isLoadingMore ? "Memuat..." : "Tampilkan Lebih Banyak"}
+                <ChevronDown className={`w-4 h-4 transition-transform ${isLoadingMore ? 'animate-bounce' : 'group-hover:translate-y-1'}`} />
               </button>
             </div>
           )}
           
-          {/* PESAN JIKA SEMUA BERITA SUDAH HABIS DILOAD */}
           {!hasMore && articles.length > 0 && (
              <div className="mt-14 text-center text-gray-400 dark:text-gray-500 text-sm font-medium italic border-t border-gray-100 dark:border-gray-800 pt-8">
                ~ Semua berita di kanal ini telah ditampilkan ~
@@ -203,7 +203,7 @@ export default function KabarPage() {
 
         </div>
 
-        {/* KOLOM KANAN (Sidebar Pintar) */}
+        {/* KOLOM KANAN (Sidebar) */}
         <div className="w-full lg:w-1/3">
           <Sidebar menuName={KATEGORI_HALAMAN} />
         </div>
