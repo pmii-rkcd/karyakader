@@ -20,6 +20,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<any>({});
   const [aboutSettings, setAboutSettings] = useState<any>({});
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // STATE BARU: Untuk mengontrol buka-tutup pencarian di layar HP
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -39,6 +42,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setIsMobileSearchOpen(false); // Tutup overlay setelah submit
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
@@ -54,7 +58,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans min-w-0 max-w-[100vw] overflow-x-hidden">
       
-      {/* === TOP BAR === */}
+      {/* === TOP BAR (Akan hilang saat layar di-scroll ke bawah) === */}
       <div className="bg-[#0f2136] dark:bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-8 flex flex-wrap justify-between items-center border-b border-gray-800 gap-2 transition-colors duration-500 relative z-[70]">
         <div className="flex items-center gap-2 font-medium tracking-wide">
           <Calendar className="w-3.5 h-3.5 text-yellow-500 hidden sm:block" />
@@ -80,39 +84,87 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* === HEADER === */}
-      <header className="bg-white dark:bg-[#0d1520] py-5 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm dark:shadow-none dark:border-b dark:border-gray-800 gap-5 relative z-[60] transition-colors duration-500 w-full">
-        {/* PERBAIKAN: Dibuat justify-start untuk md dan justify-center dihapus agar flex nempel ke kiri */}
-        <Link href="/" className="flex items-center gap-3 sm:gap-4 w-full md:w-auto group">
-          {settings.logoUrl ? (
-            <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0">
-               <Image src={settings.logoUrl} alt="Logo" fill className="rounded-full object-cover border-2 border-yellow-500 group-hover:scale-105 transition-transform duration-300 shadow-md" />
-            </div>
-          ) : (
-            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 bg-[#0f2136] rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[10px] shadow-md">LOGO</div>
-          )}
-          <div className="text-left flex-1 min-w-0">
-            <h1 className="font-serif text-xl sm:text-2xl md:text-3xl font-black text-[#0f2136] dark:text-white tracking-tight group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors truncate">{settings.webName || 'KARYA KADER'}</h1>
-            <div className="bg-[#0f2136] text-yellow-500 text-[9px] sm:text-[10px] px-2 py-1 sm:px-2.5 mt-1 rounded font-bold uppercase tracking-widest shadow-sm inline-block truncate max-w-full">{settings.tagline || 'PR. PMII "KAWAH" CHONDRODIMUKO'}</div>
-          </div>
-        </Link>
-        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-72 mt-2 md:mt-0">
-          <input type="text" placeholder="Cari berita..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-gray-100 dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2.5 px-5 pr-12 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-inner border border-transparent dark:border-gray-800" required />
-          <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 transition-colors"><Search className="w-4 h-4" /></button>
-        </form>
-      </header>
+      {/* 🔥 KOTAK STICKY (Logo & Menu Kanal yang akan selalu ikut saat di-scroll) 🔥 */}
+      <div className="sticky top-0 z-[60] w-full flex flex-col shadow-md transition-colors duration-500 bg-white dark:bg-[#0d1520]">
+        
+        {/* HEADER LOGO & PENCARIAN */}
+        <header className="relative py-3 sm:py-4 px-4 md:px-8 flex justify-between items-center transition-colors duration-500 w-full min-h-[72px]">
+          
+          {/* Spacer Tak Terlihat (Penyeimbang posisi Logo di HP agar berada persis di tengah) */}
+          <div className="w-8 sm:w-10 md:hidden block"></div>
 
-      {/* === NAVBAR === */}
-      <nav className="bg-[#0f2136]/95 dark:bg-[#0a0f18]/90 backdrop-blur-md text-white border-b-[3px] border-yellow-500 shadow-md sticky top-0 z-[50] transition-colors duration-500 overflow-x-auto w-full no-scrollbar">
-        <ul className="flex flex-nowrap items-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] font-bold uppercase tracking-widest w-max min-w-full px-4 py-3 md:px-8 justify-start md:justify-center">
-          <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
-          <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
-          <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
-          <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
-          <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
-          <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
-        </ul>
-      </nav>
+          {/* LOGO & NAMA PORTAL (Berada di tengah pada HP, di pinggir kiri pada Laptop) */}
+          <Link href="/" className="flex items-center justify-center md:justify-start gap-3 sm:gap-4 group z-0">
+            {settings.logoUrl ? (
+              <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0">
+                 <Image src={settings.logoUrl} alt="Logo" fill className="rounded-full object-cover border-2 border-yellow-500 group-hover:scale-105 transition-transform duration-300 shadow-sm" />
+              </div>
+            ) : (
+              <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 bg-[#0f2136] rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[10px] shadow-sm">LOGO</div>
+            )}
+            <div className="text-left flex-1 min-w-0">
+              <h1 className="font-serif text-xl sm:text-2xl md:text-3xl font-black text-[#0f2136] dark:text-white tracking-tight group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors truncate">{settings.webName || 'KARYA KADER'}</h1>
+              <div className="bg-[#0f2136] text-yellow-500 text-[9px] sm:text-[10px] px-2 py-1 sm:px-2.5 mt-1 rounded font-bold uppercase tracking-widest shadow-sm inline-block truncate max-w-full">{settings.tagline || 'PR. PMII "KAWAH" CHONDRODIMUKO'}</div>
+            </div>
+          </Link>
+
+          {/* PENCARIAN DESKTOP (Hanya tampil di Laptop) */}
+          <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-72">
+            <input type="text" placeholder="Cari berita..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-gray-100 dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2.5 px-5 pr-12 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-inner border border-transparent dark:border-gray-800" required />
+            <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 transition-colors"><Search className="w-4 h-4" /></button>
+          </form>
+
+          {/* IKON PENCARIAN MOBILE (Penyeimbang Logo, akan memunculkan form saat diklik) */}
+          <button 
+            type="button" 
+            onClick={() => setIsMobileSearchOpen(true)}
+            className="md:hidden w-8 sm:w-10 flex justify-end text-gray-400 hover:text-yellow-500 transition-colors z-0"
+          >
+            <Search className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+
+          {/* OVERLAY PENCARIAN MOBILE (Muncul jika ikon diklik) */}
+          {isMobileSearchOpen && (
+            <div className="absolute inset-0 bg-white dark:bg-[#0d1520] z-20 flex items-center px-4 md:hidden border-b border-gray-100 dark:border-gray-800">
+              <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center gap-3">
+                <div className="relative w-full flex-1">
+                  <input 
+                    type="text" 
+                    autoFocus
+                    placeholder="Cari tulisan..." 
+                    value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)} 
+                    className="bg-gray-100 dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2 px-5 pr-10 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-inner border border-transparent dark:border-gray-800" 
+                    required 
+                  />
+                  <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500">
+                    <Search className="w-4 h-4" />
+                  </button>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setIsMobileSearchOpen(false)}
+                  className="text-xs font-bold text-gray-500 hover:text-[#0f2136] dark:hover:text-white uppercase tracking-wider shrink-0"
+                >
+                  Batal
+                </button>
+              </form>
+            </div>
+          )}
+        </header>
+
+        {/* NAVBAR MENU KANAL */}
+        <nav className="bg-[#0f2136]/95 dark:bg-[#0a0f18]/90 backdrop-blur-md text-white border-b-[3px] border-yellow-500 overflow-x-auto w-full no-scrollbar">
+          <ul className="flex flex-nowrap items-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] font-bold uppercase tracking-widest w-max min-w-full px-4 py-3 md:px-8 justify-start md:justify-center">
+            <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
+            <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
+            <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
+            <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
+            <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
+            <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
+          </ul>
+        </nav>
+      </div>
 
       {/* === MAIN CONTENT === */}
       <div className="flex-1 flex flex-col w-full relative min-w-0">
