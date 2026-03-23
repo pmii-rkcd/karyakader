@@ -7,8 +7,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 
-// 🚀 IMPORT LUCIDE ICONS UNTUK MENU
-import { Menu, X, FileText, CalendarDays, Users, LayoutTemplate, PanelRight, Building, Home, LogOut } from 'lucide-react';
+// 🚀 IMPORT LUCIDE ICONS UNTUK MENU (Ditambah UserCheck untuk Penulis)
+import { Menu, X, FileText, CalendarDays, Users, LayoutTemplate, PanelRight, Building, Home, LogOut, UserCheck } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -36,6 +36,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Daftar Menu di Sidebar Admin (Sekarang pakai Icon Lucide)
   const navItems = [
     { name: 'Manajemen Berita', path: '/dashboard', icon: FileText },
+    // 🔥 MENU BARU UNTUK PORTOFOLIO PENULIS 🔥
+    { name: 'Manajemen Penulis', path: '/dashboard/penulis', icon: UserCheck },
     { name: 'Agenda Rayon', path: '/dashboard/agenda', icon: CalendarDays },
     { name: 'Susunan Redaksi', path: '/dashboard/redaksi', icon: Users },
     { name: 'Header & Footer', path: '/dashboard/settings/header-footer', icon: LayoutTemplate },
@@ -78,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto hide-scrollbar">
           <p className="px-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Menu Utama</p>
           {navItems.map((item) => {
-            const isActive = pathname === item.path;
+            const isActive = pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(item.path));
             const Icon = item.icon;
             return (
               <Link key={item.path} href={item.path} 

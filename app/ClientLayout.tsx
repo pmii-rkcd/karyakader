@@ -56,7 +56,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   });
 
   return (
-    // PERBAIKAN SAKTI: overflow-x-hidden DIHAPUS dari sini agar fitur Sticky bisa bekerja!
     <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans">
       
       {/* === TOP BAR (Akan hilang saat layar di-scroll ke bawah) === */}
@@ -85,50 +84,48 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      {/* 🔥 KOTAK STICKY (Logo & Menu Kanal yang akan selalu ikut saat di-scroll) 🔥 */}
+      {/* 🔥 KOTAK STICKY 🔥 */}
       <div className="sticky top-0 z-[60] w-full flex flex-col shadow-md transition-colors duration-500 bg-white dark:bg-[#0d1520]">
         
         {/* HEADER LOGO & PENCARIAN */}
-        <header className="relative py-3 sm:py-4 px-4 md:px-8 flex justify-between items-center transition-colors duration-500 w-full min-h-[72px]">
+        {/* PERBAIKAN: Padding atas bawah dikurangi di HP (py-2.5) agar lebih tipis */}
+        <header className="relative py-2.5 sm:py-4 px-4 md:px-8 flex justify-between items-center transition-colors duration-500 w-full min-h-[60px] sm:min-h-[72px]">
           
-          {/* Spacer Tak Terlihat (Penyeimbang Kiri di HP agar Logo pas di Tengah) */}
-          <div className="w-10 h-10 md:hidden shrink-0"></div>
-
-          {/* LOGO & NAMA PORTAL (Tengah di HP, Kiri di Laptop) */}
-          <Link href="/" className="flex items-center justify-center md:justify-start gap-3 sm:gap-4 group z-10 mx-auto md:mx-0 shrink-0">
+          {/* PERBAIKAN: Spacer dihapus, mr-auto ditambahkan agar logo mentok ke kiri */}
+          <Link href="/" className="flex items-center justify-start gap-2.5 sm:gap-4 group z-10 mr-auto shrink-0">
             {settings.logoUrl ? (
-              <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0">
-                 <Image src={settings.logoUrl} alt="Logo" fill className="rounded-full object-cover border-2 border-yellow-500 group-hover:scale-105 transition-transform duration-300 shadow-sm" />
+              <div className="relative w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0">
+                 <Image src={settings.logoUrl} alt="Logo" fill className="rounded-full object-cover border-[1.5px] sm:border-2 border-yellow-500 group-hover:scale-105 transition-transform duration-300 shadow-sm" />
               </div>
             ) : (
-              <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 bg-[#0f2136] rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[10px] shadow-sm">LOGO</div>
+              <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0 bg-[#0f2136] rounded-full border-[1.5px] sm:border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[9px] sm:text-[10px] shadow-sm">LOGO</div>
             )}
-            <div className="text-left flex flex-col justify-center">
-              <h1 className="font-serif text-xl sm:text-2xl md:text-3xl font-black text-[#0f2136] dark:text-white tracking-tight group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors">
+            <div className="text-left flex flex-col justify-center mt-0.5">
+              <h1 className="font-serif text-lg sm:text-2xl md:text-3xl font-black text-[#0f2136] dark:text-white tracking-tight group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors leading-none">
                 {settings.webName || 'KARYA KADER'}
               </h1>
-              <div className="bg-[#0f2136] text-yellow-500 text-[8px] sm:text-[10px] px-2 py-1 mt-1 rounded font-bold uppercase tracking-widest shadow-sm w-max">
+              <div className="bg-[#0f2136] text-yellow-500 text-[7px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 mt-1 rounded font-bold uppercase tracking-widest shadow-sm w-max">
                 {settings.tagline || 'PR. PMII "KAWAH" CHONDRODIMUKO'}
               </div>
             </div>
           </Link>
 
-          {/* PENCARIAN DESKTOP (Hanya tampil di Laptop) */}
+          {/* PENCARIAN DESKTOP */}
           <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-72 shrink-0">
             <input type="text" placeholder="Cari berita..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-gray-100 dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2.5 px-5 pr-12 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-inner border border-transparent dark:border-gray-800" required />
             <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 transition-colors"><Search className="w-4 h-4" /></button>
           </form>
 
-          {/* 🔥 TOMBOL PENCARIAN MOBILE UI/UX MODERN 🔥 */}
+          {/* TOMBOL PENCARIAN MOBILE UI/UX MODERN */}
           <button 
             type="button" 
             onClick={() => setIsMobileSearchOpen(true)}
-            className="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-500/20 transition-all shadow-sm shrink-0 z-10"
+            className="md:hidden flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-500/20 transition-all shadow-sm shrink-0 z-10"
           >
-            <Search className="w-5 h-5" />
+            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
-          {/* OVERLAY PENCARIAN MOBILE (Muncul menutupi header jika diklik) */}
+          {/* OVERLAY PENCARIAN MOBILE */}
           {isMobileSearchOpen && (
             <div className="absolute inset-0 bg-white/95 dark:bg-[#0d1520]/95 backdrop-blur-md z-[80] flex items-center px-4 md:hidden border-b border-gray-100 dark:border-gray-800">
               <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center gap-3">
@@ -139,7 +136,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     placeholder="Cari tulisan..." 
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)} 
-                    className="bg-white dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2.5 px-5 pr-10 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-sm border border-gray-200 dark:border-gray-700" 
+                    className="bg-white dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2 px-5 pr-10 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-sm border border-gray-200 dark:border-gray-700" 
                     required 
                   />
                   <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500">
@@ -159,14 +156,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* NAVBAR MENU KANAL */}
+        {/* PERBAIKAN: Padding py-3 diubah jadi py-2 di HP agar menu lebih tipis */}
         <nav className="bg-[#0f2136]/95 dark:bg-[#0a0f18]/90 backdrop-blur-md text-white border-b-[3px] border-yellow-500 overflow-x-auto w-full no-scrollbar shadow-sm">
-          <ul className="flex flex-nowrap items-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] font-bold uppercase tracking-widest w-max min-w-full px-4 py-3 md:px-8 justify-start md:justify-center">
-            <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
-            <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
-            <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
-            <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
-            <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
-            <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
+          <ul className="flex flex-nowrap items-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] font-bold uppercase tracking-widest w-max min-w-full px-4 py-2 sm:py-3 md:px-8 justify-start md:justify-center">
+            {/* PERBAIKAN: Padding dalam link juga ditipiskan (py-1.5) */}
+            <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
+            <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
+            <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
+            <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
+            <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
+            <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
           </ul>
         </nav>
       </div>
@@ -241,7 +240,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </footer>
       
-      {/* GLOBAL CSS PENTING: Untuk merapikan scrollbar dan MENGUNCI agar layar tidak tembus horizontal (anti jebol) */}
       <style jsx global>{`
         body {
           overflow-x: hidden;

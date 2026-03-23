@@ -49,7 +49,7 @@ export default function KabarPage() {
   
   const BATCH_SIZE = 6; 
 
-  const KATEGORI_HALAMAN = "Mutiara Chondrodimuko"; 
+  const KATEGORI_HALAMAN = "Mutiara Chondro"; 
 
   useEffect(() => {
     const fetchInitialArticles = async () => {
