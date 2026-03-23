@@ -84,7 +84,6 @@ export default function DetailBerita() {
             setArticle({ ...articleData, id: docData.id, views: articleData.views || 0 });
           }
 
-          // Radar Penulis
           if (articleData.kredit?.penulis && articleData.kredit.penulis !== 'Redaksi') {
             try {
               const authorQuery = query(collection(db, 'authors'), where('name', '==', articleData.kredit.penulis), limit(1));
@@ -93,13 +92,11 @@ export default function DetailBerita() {
             } catch (err) { console.error("Gagal cek penulis:", err); }
           }
 
-          // 🔥 JALUR AMAN 1: Ambil Komentar (Tanpa membuat Web Crash jika gagal) 🔥
           try {
             const commentsQuery = query(collection(db, 'comments'), where('articleId', '==', docData.id));
             const commentsSnap = await getDocs(commentsQuery);
             const fetchedComments = commentsSnap.docs.map(c => ({ id: c.id, ...c.data() })) as Comment[];
             
-            // Urutkan manual
             fetchedComments.sort((a, b) => {
               const timeA = a.createdAt?.seconds || 0;
               const timeB = b.createdAt?.seconds || 0;
@@ -107,10 +104,9 @@ export default function DetailBerita() {
             });
             setComments(fetchedComments);
           } catch (err) {
-            console.error("Gagal mengambil komentar (Cek Firebase Rules!):", err);
+            console.error("Gagal mengambil komentar:", err);
           }
 
-          // 🔥 JALUR AMAN 2: Ambil Berita Terkait 🔥
           try {
             const relatedSnap = await getDocs(query(collection(db, 'articles'), where('category', '==', articleData.category), where('slug', '!=', slug), limit(3)));
             setRelatedArticles(relatedSnap.docs.map(c => ({ id: c.id, ...c.data() })) as Article[]);
@@ -195,12 +191,12 @@ export default function DetailBerita() {
 
   const formattedDate = article.createdAt?.toDate ? article.createdAt.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Tanggal tidak diketahui';
 
-  const isBararasa = article.category?.trim().toLowerCase() === 'bararasa';
-  
   let displayContent = article.content;
 
-  if (!isBararasa) {
-    displayContent = displayContent.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+  // Hapus logik isBararasa yang membingungkan editor, biarkan Quill Editor yang mengatur sepenuhnya
+  displayContent = displayContent.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+  
+  if (article.category?.trim().toLowerCase() !== 'bararasa') {
     if (article.dateline) {
       displayContent = displayContent.replace(/<p[^>]*>/i, (match) => `${match}<strong class="font-bold">${article.dateline}, Karyakader.id</strong> &mdash; `);
     } else {
@@ -272,24 +268,35 @@ export default function DetailBerita() {
               )}
             </div>
 
+            {/* TEKS BERITA (DIPERHALUS AGAR TIDAK MEMOTONG KATA DI TENGAH) */}
             <div 
               className={`
               w-full max-w-full font-serif text-[#2b2b2b] dark:text-gray-300 
               text-[17px] md:text-[20px] leading-[2] md:leading-[2.2] tracking-[0.01em]
-              break-words [word-break:break-word] overflow-wrap-anywhere
+              
+              /* PENGUNCI LAYAR YANG LEBIH HALUS */
+              break-words
+              
               [&>p]:mb-6 md:[&>p]:mb-8
+              
+              /* FORMATTING EDITOR */
               [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-justify]:text-justify
               [&_[style*="text-align: center"]]:text-center [&_[style*="text-align: right"]]:text-right [&_[style*="text-align: justify"]]:text-justify
               [&_[style*="text-align:center"]]:text-center [&_[style*="text-align:right"]]:text-right [&_[style*="text-align:justify"]]:text-justify
+              
               [&_b]:font-bold [&_strong]:font-bold
               [&_i]:italic [&_em]:italic
               [&_u]:underline
+              
               [&_.ql-size-small]:text-sm [&_.ql-size-large]:text-2xl md:[&_.ql-size-large]:text-3xl [&_.ql-size-huge]:text-4xl md:[&_.ql-size-huge]:text-5xl
+
               [&_a]:text-blue-600 dark:[&_a]:text-yellow-400 hover:[&_a]:underline
+              
+              /* CEGAH GAMBAR EDITOR NEMBUS KANAN */
               [&_img]:rounded-2xl [&_img]:my-8 [&_img]:max-w-full [&_img]:h-auto [&_img]:mx-auto [&_img]:shadow-md
+              
               [&_blockquote]:border-l-4 [&_blockquote]:border-yellow-500 [&_blockquote]:bg-gray-50 dark:[&_blockquote]:bg-[#15202b] 
               [&_blockquote]:py-5 [&_blockquote]:px-6 [&_blockquote]:rounded-r-xl [&_blockquote]:italic [&_blockquote]:my-10
-              ${isBararasa ? 'whitespace-pre-wrap' : ''}
               `}
               dangerouslySetInnerHTML={{ __html: displayContent }} 
             />
@@ -305,6 +312,7 @@ export default function DetailBerita() {
                 </div>
               )}
 
+              {/* FOTO PROFIL REDAKSI */}
               {article.kredit && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-14 bg-gray-50 dark:bg-[#15202b] p-6 rounded-xl border border-gray-100 dark:border-gray-800">
                   
@@ -315,6 +323,7 @@ export default function DetailBerita() {
                   )}
 
                   <div className="text-[14px] text-gray-700 dark:text-gray-300 space-y-1.5 flex-1">
+                    
                     {article.kredit.penulis && (
                       <p>
                         <span className="font-bold text-[#0f2136] dark:text-gray-100">Penulis:</span>{' '}
@@ -327,6 +336,7 @@ export default function DetailBerita() {
                         )}
                       </p>
                     )}
+
                     {article.kredit.editor && (
                       <p><span className="font-bold text-[#0f2136] dark:text-gray-100">Editor:</span> {article.kredit.editor}</p>
                     )}
