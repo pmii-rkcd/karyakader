@@ -1,14 +1,16 @@
 // app/penulis/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+// 🚀 IMPORT BARU UNTUK BACA PARAMETER PENCARIAN
+import { useSearchParams } from 'next/navigation';
 // 🚀 IMPORT LUCIDE ICONS
-import { Loader2, Instagram, Linkedin, ArrowRight, PenTool } from 'lucide-react';
+import { Loader2, Instagram, Linkedin, ArrowRight, PenTool, SearchX } from 'lucide-react';
 
 interface Author {
   id: string;
@@ -18,17 +20,21 @@ interface Author {
   imageUrl: string;
   instagram: string;
   linkedin: string;
-  slug?: string; // 🔥 TAMBAHAN FIELD SLUG
+  slug?: string; 
 }
 
-export default function DaftarPenulisPage() {
+// ⚠️ KITA BUNGKUS KONTEN UTAMA DALAM KOMPONEN BARU 
+function PenulisContent() {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 🔥 TANGKAP KATA KUNCI PENCARIAN DARI URL (Misal: ?q=ahmad)
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams?.get('q')?.toLowerCase() || '';
 
   useEffect(() => {
     const fetchAuthors = async () => {
       try {
-        // Mengambil data penulis dari database
         const q = query(collection(db, 'authors'));
         const querySnapshot = await getDocs(q);
         const fetchedAuthors = querySnapshot.docs.map(doc => ({
@@ -46,6 +52,13 @@ export default function DaftarPenulisPage() {
 
     fetchAuthors();
   }, []);
+
+  // 🔥 FILTER DATA PENULIS BERDASARKAN PENCARIAN (NAMA/PERAN/BIO)
+  const filteredAuthors = authors.filter(author =>
+    author.name.toLowerCase().includes(searchQuery) ||
+    author.role.toLowerCase().includes(searchQuery) ||
+    author.bio.toLowerCase().includes(searchQuery)
+  );
 
   if (isLoading) {
     return (
@@ -66,23 +79,38 @@ export default function DaftarPenulisPage() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-50 dark:bg-yellow-500/10 text-yellow-500 mb-6 shadow-sm">
           <PenTool className="w-8 h-8" />
         </motion.div>
+        
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-3xl md:text-5xl font-serif font-black text-[#0f2136] dark:text-white mb-4 uppercase tracking-wide drop-shadow-sm">
-          Kader Penulis
+          {/* 🔥 UBAH JUDUL JIKA SEDANG MENCARI 🔥 */}
+          {searchQuery ? `Hasil Pencarian: "${searchQuery}"` : "Kader Penulis"}
         </motion.h1>
+        
         <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="w-24 h-1.5 bg-yellow-500 mx-auto rounded-full shadow-sm mb-6"></motion.div>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-          Mengenal lebih dekat para pemikir, kreator, dan penggerak literasi di balik setiap karya dan narasi PMII "Kawah" Chondrodimuko.
-        </motion.p>
+        
+        {/* Sembunyikan deskripsi jika sedang mencari */}
+        {!searchQuery && (
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
+            Mengenal lebih dekat para pemikir, kreator, dan penggerak literasi di balik setiap karya dan narasi PMII "Kawah" Chondrodimuko.
+          </motion.p>
+        )}
       </div>
 
       {/* GRID PENULIS */}
-      {authors.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-[#0d1520] rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800 shadow-sm">
-          <p className="text-xl font-serif text-gray-400">Belum ada profil penulis yang dipublikasikan.</p>
+      {filteredAuthors.length === 0 ? (
+        <div className="text-center py-20 bg-white dark:bg-[#0d1520] rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center">
+          <SearchX className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+          <p className="text-xl font-serif text-gray-500 dark:text-gray-400">
+            {searchQuery ? `Tidak ada penulis yang cocok dengan "${searchQuery}"` : "Belum ada profil penulis yang dipublikasikan."}
+          </p>
+          {searchQuery && (
+            <Link href="/penulis" className="mt-6 px-6 py-2 bg-[#0f2136] text-white rounded-lg hover:bg-yellow-500 hover:text-[#0f2136] transition-colors text-sm font-bold">
+              Kembali ke Daftar Penulis
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {authors.map((author, index) => (
+          {filteredAuthors.map((author, index) => (
             <motion.div 
               key={author.id}
               initial={{ opacity: 0, y: 30 }}
@@ -133,7 +161,6 @@ export default function DaftarPenulisPage() {
                     )}
                   </div>
 
-                  {/* 🔥 LOGIKA TOMBOL KARYA BERDASARKAN SLUG/ID 🔥 */}
                   <Link 
                     href={`/penulis/${author.slug || author.id}`} 
                     className="w-full bg-[#0f2136] dark:bg-yellow-500 text-white dark:text-[#0f2136] font-bold text-xs uppercase tracking-widest py-3 rounded-lg hover:bg-yellow-500 dark:hover:bg-yellow-400 hover:text-[#0f2136] transition-colors flex items-center justify-center gap-2"
@@ -148,5 +175,14 @@ export default function DaftarPenulisPage() {
         </div>
       )}
     </main>
+  );
+}
+
+// ⚠️ WAJIB: Bungkusan Suspense agar aman dari error peringatan Next.js soal useSearchParams
+export default function DaftarPenulisPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a0f18]"><Loader2 className="w-12 h-12 animate-spin text-yellow-500" /></div>}>
+      <PenulisContent />
+    </Suspense>
   );
 }

@@ -51,12 +51,21 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   // Variabel untuk menyembunyikan menu kanal
   const hideNavKanal = isPenulisPath || isPenulisDomain;
+  // Variabel penanda Area Penulis
+  const isPenulisArea = isPenulisPath || isPenulisDomain;
 
+  // 🔥 LOGIKA PENCARIAN KONTEKSTUAL 🔥
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       setIsMobileSearchOpen(false); 
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+      if (isPenulisArea) {
+        // Jika di area penulis, arahkan ke halaman penulis
+        router.push(`/penulis?q=${encodeURIComponent(searchQuery)}`);
+      } else {
+        // Jika di web utama, arahkan ke pencarian berita
+        router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+      }
     }
   };
 
@@ -123,7 +132,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* PENCARIAN DESKTOP */}
           <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-72 shrink-0">
-            <input type="text" placeholder="Cari berita..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-gray-100 dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2.5 px-5 pr-12 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-inner border border-transparent dark:border-gray-800" required />
+            <input 
+              type="text" 
+              placeholder={isPenulisArea ? "Cari profil penulis..." : "Cari berita..."} 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="bg-gray-100 dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2.5 px-5 pr-12 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-inner border border-transparent dark:border-gray-800" 
+              required 
+            />
             <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 transition-colors"><Search className="w-4 h-4" /></button>
           </form>
 
@@ -144,7 +160,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   <input 
                     type="text" 
                     autoFocus
-                    placeholder="Cari tulisan..." 
+                    placeholder={isPenulisArea ? "Cari profil penulis..." : "Cari tulisan..."}
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)} 
                     className="bg-white dark:bg-[#15202b] dark:text-gray-200 rounded-full py-2 px-5 pr-10 text-sm w-full focus:ring-2 focus:ring-yellow-500 outline-none transition-all shadow-sm border border-gray-200 dark:border-gray-700" 
@@ -226,7 +242,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* 🔥 KOLOM BARU: WEB PENULIS (DIPERKUAT ANTI-JEBOL) 🔥 */}
           <div className="flex flex-col">
             <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2 shrink-0"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Web Penulis</h3>
             <div className="bg-gray-800/50 p-5 rounded-xl border border-gray-700/50 flex-1 flex flex-col">
@@ -238,7 +253,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* KOLOM REDAKSI (DIPERKUAT ANTI-JEBOL) */}
           <div className="flex flex-col">
             <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2 shrink-0"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Redaksi</h3>
             <div className="bg-gray-800/50 p-5 rounded-xl border border-gray-700/50 flex-1 flex flex-col">
