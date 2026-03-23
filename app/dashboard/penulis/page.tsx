@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
-import { Loader2, Plus, Edit, Trash2, X, Upload, Save, UserCheck } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, X, Upload, Save, UserCheck, AlertTriangle } from 'lucide-react';
 
 interface Author {
   id: string;
@@ -18,7 +18,6 @@ interface Author {
   slug?: string; // 🔥 TAMBAHAN FIELD SLUG
 }
 
-// 🔥 SEKARANG OTOMATIS AMBIL DARI .env.local 🔥
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""; 
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
 
@@ -47,10 +46,9 @@ export default function ManajemenPenulisPage() {
   const [bio, setBio] = useState('');
   const [instagram, setInstagram] = useState('');
   const [linkedin, setLinkedin] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null); // State file fisik
-  const [imageUrl, setImageUrl] = useState(''); // State URL hasil upload
+  const [imageFile, setImageFile] = useState<File | null>(null); 
+  const [imageUrl, setImageUrl] = useState(''); 
 
-  // Fetch Authors
   const fetchAuthors = async () => {
     setIsLoading(true);
     try {
@@ -106,7 +104,6 @@ export default function ManajemenPenulisPage() {
     try {
       let uploadedImageUrl = imageUrl;
 
-      // 🔥 PROSES UPLOAD KE CLOUDINARY JIKA ADA FILE BARU 🔥
       if (imageFile) {
         if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
           alert('Error: Pengaturan Cloudinary di .env.local belum lengkap!');
@@ -135,7 +132,6 @@ export default function ManajemenPenulisPage() {
       // 🔥 MEMBUAT SLUG DARI NAMA YANG DIINPUT 🔥
       const authorSlug = generateSlug(name);
 
-      // Simpan data text + Link ke Firestore
       const authorData = {
         name,
         slug: authorSlug, // Masukkan slug ke database
@@ -156,10 +152,10 @@ export default function ManajemenPenulisPage() {
       }
 
       handleCloseModal();
-      fetchAuthors();
+      fetchAuthors(); // Refresh data di tabel
     } catch (error) {
       console.error("Gagal menyimpan data:", error);
-      alert('Terjadi kesalahan saat menyimpan data. Periksa kembali file gambar Anda.');
+      alert('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setIsSaving(false);
     }
@@ -196,7 +192,6 @@ export default function ManajemenPenulisPage() {
         </button>
       </div>
 
-      {/* Table / List View */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {isLoading ? (
           <div className="p-12 flex justify-center items-center">
@@ -226,11 +221,19 @@ export default function ManajemenPenulisPage() {
                         </div>
                         <div>
                           <p className="font-bold text-[#0f2136] text-sm md:text-base">{author.name}</p>
-                          <p className="text-xs text-yellow-600 font-bold uppercase tracking-wider mt-0.5">{author.role}</p>
-                          {/* 🔥 MENAMPILKAN SLUG AGAR ADMIN TAHU URL-NYA 🔥 */}
-                          {author.slug && (
-                            <p className="text-[10px] text-gray-400 mt-1">/{author.slug}</p>
+                          <p className="text-xs text-yellow-600 font-bold uppercase tracking-wider mt-0.5 mb-1">{author.role}</p>
+                          
+                          {/* 🔥 DETEKTOR SLUG: Akan ngasih tahu kalau data di Firebase belum lengkap 🔥 */}
+                          {author.slug ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-100">
+                              ✓ /{author.slug}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-100 animate-pulse">
+                              <AlertTriangle className="w-3 h-3" /> Wajib Edit & Simpan!
+                            </span>
                           )}
+
                         </div>
                       </div>
                     </td>
