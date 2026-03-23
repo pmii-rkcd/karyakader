@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, serverTimestamp, limit } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -19,7 +19,7 @@ interface Article {
   kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; fotoUrl?: string; };
 }
 
-interface Comment { id: string; name: string; text: string; createdAt: any; }
+interface Comment { id: string; name: string; text: string; createdAt: any; articleId?: string; }
 
 const getShareUrl = (platform: string, title: string, currentUrl: string) => {
   const t = encodeURIComponent(title);
@@ -33,7 +33,7 @@ const getShareUrl = (platform: string, title: string, currentUrl: string) => {
 export default function DetailBerita() {
   const params = useParams();
   const router = useRouter();
-  const slug = params.slug;
+  const slug = params.slug as string;
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   const [article, setArticle] = useState<Article | null>(null);
@@ -41,12 +41,25 @@ export default function DetailBerita() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔥 STATE BARU: Menyimpan ID Portofolio Penulis jika ditemukan
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
 
   const [commentName, setCommentName] = useState('');
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const [mainDomainUrl, setMainDomainUrl] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host.includes('penulis.')) {
+        const protocol = window.location.protocol;
+        const port = window.location.port ? `:${window.location.port}` : '';
+        const mainHost = host.replace('penulis.', '');
+        setMainDomainUrl(`${protocol}//${mainHost}${port}`);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchArticleAndComments = async () => {
@@ -71,28 +84,45 @@ export default function DetailBerita() {
             setArticle({ ...articleData, id: docData.id, views: articleData.views || 0 });
           }
 
-          // 🔥 RADAR PENCARI PENULIS: Cek apakah nama penulis ada di data Portofolio
+          // Radar Penulis
           if (articleData.kredit?.penulis && articleData.kredit.penulis !== 'Redaksi') {
-            const authorQuery = query(collection(db, 'authors'), where('name', '==', articleData.kredit.penulis), limit(1));
-            const authorSnap = await getDocs(authorQuery);
-            if (!authorSnap.empty) {
-              setAuthorProfileId(authorSnap.docs[0].id); // Simpan ID penulisnya
-            }
+            try {
+              const authorQuery = query(collection(db, 'authors'), where('name', '==', articleData.kredit.penulis), limit(1));
+              const authorSnap = await getDocs(authorQuery);
+              if (!authorSnap.empty) setAuthorProfileId(authorSnap.docs[0].id);
+            } catch (err) { console.error("Gagal cek penulis:", err); }
           }
 
-          const [commentsSnap, relatedSnap] = await Promise.all([
-            getDocs(query(collection(db, 'comments'), where('articleId', '==', docData.id), orderBy('createdAt', 'desc'))),
-            getDocs(query(collection(db, 'articles'), where('category', '==', articleData.category), where('slug', '!=', slug), limit(3)))
-          ]);
+          // 🔥 JALUR AMAN 1: Ambil Komentar (Tanpa membuat Web Crash jika gagal) 🔥
+          try {
+            const commentsQuery = query(collection(db, 'comments'), where('articleId', '==', docData.id));
+            const commentsSnap = await getDocs(commentsQuery);
+            const fetchedComments = commentsSnap.docs.map(c => ({ id: c.id, ...c.data() })) as Comment[];
+            
+            // Urutkan manual
+            fetchedComments.sort((a, b) => {
+              const timeA = a.createdAt?.seconds || 0;
+              const timeB = b.createdAt?.seconds || 0;
+              return timeB - timeA; 
+            });
+            setComments(fetchedComments);
+          } catch (err) {
+            console.error("Gagal mengambil komentar (Cek Firebase Rules!):", err);
+          }
 
-          setComments(commentsSnap.docs.map(c => ({ id: c.id, ...c.data() })) as Comment[]);
-          setRelatedArticles(relatedSnap.docs.map(c => ({ id: c.id, ...c.data() })) as Article[]);
+          // 🔥 JALUR AMAN 2: Ambil Berita Terkait 🔥
+          try {
+            const relatedSnap = await getDocs(query(collection(db, 'articles'), where('category', '==', articleData.category), where('slug', '!=', slug), limit(3)));
+            setRelatedArticles(relatedSnap.docs.map(c => ({ id: c.id, ...c.data() })) as Article[]);
+          } catch (err) {
+            console.error("Gagal mengambil berita terkait:", err);
+          }
 
         } else {
           setArticle(null);
         }
       } catch (error) {
-        console.error("Gagal mengambil berita:", error);
+        console.error("Gagal memuat halaman utama berita:", error);
       } finally {
         setIsLoading(false);
       }
@@ -104,15 +134,41 @@ export default function DetailBerita() {
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentName.trim() || !commentText.trim() || !article) return;
+    
     setIsSubmittingComment(true);
+    
     try {
-      const newComment = { articleId: article.id, name: commentName, text: commentText, createdAt: serverTimestamp() };
+      const newComment = { 
+        articleId: article.id, 
+        name: commentName, 
+        text: commentText, 
+        createdAt: serverTimestamp() 
+      };
+      
       const docRef = await addDoc(collection(db, 'comments'), newComment);
-      await updateDoc(doc(db, 'articles', article.id), { commentCount: increment(1) });
-      setComments([{ id: docRef.id, name: commentName, text: commentText, createdAt: { toDate: () => new Date() } }, ...comments]);
+      
+      await updateDoc(doc(db, 'articles', article.id), { 
+        commentCount: increment(1) 
+      });
+      
+      setComments([{ 
+        id: docRef.id, 
+        name: commentName, 
+        text: commentText, 
+        createdAt: { toDate: () => new Date(), seconds: Math.floor(Date.now() / 1000) },
+        articleId: article.id 
+      }, ...comments]);
+      
       setArticle({ ...article, commentCount: (article.commentCount || 0) + 1 });
-      setCommentName(''); setCommentText('');
-    } catch (error) { alert("Terjadi kesalahan saat mengirim komentar."); } finally { setIsSubmittingComment(false); }
+      setCommentName(''); 
+      setCommentText('');
+      
+    } catch (error) { 
+      console.error("Error kirim komentar:", error);
+      alert("Gagal kirim. Pastikan Firebase Rules sudah diatur ke 'allow read, write: if true;'"); 
+    } finally { 
+      setIsSubmittingComment(false); 
+    }
   };
 
   if (isLoading) {
@@ -158,7 +214,6 @@ export default function DetailBerita() {
       <article className="container mx-auto px-4 max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-12">
           
-          {/* KOLOM KIRI: min-w-0 untuk mencegah overflow-x mendesak layar */}
           <div className="w-full lg:w-[68%] min-w-0">
             
             <div className="flex items-center gap-2 text-[11px] mb-6 font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800/60 pb-4">
@@ -174,7 +229,6 @@ export default function DetailBerita() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 mb-8 bg-gray-50/50 dark:bg-[#15202b]/50 px-4 rounded-xl border border-gray-100 dark:border-gray-800">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] md:text-[13px] text-gray-600 dark:text-gray-400">
                 
-                {/* 🔥 LOGIKA TOMBOL PENULIS (ATAS) 🔥 */}
                 {authorProfileId ? (
                   <Link href={`/penulis/${authorProfileId}`} className="flex items-center gap-2 font-bold text-blue-600 dark:text-yellow-400 hover:text-blue-800 dark:hover:text-yellow-300 uppercase tracking-wide border-r border-gray-300 dark:border-gray-700 pr-5 transition-colors group">
                     <User className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition-transform" />
@@ -218,36 +272,23 @@ export default function DetailBerita() {
               )}
             </div>
 
-            {/* TEKS BERITA (BEBAS FORMAT & ANTI OVERFLOW KANAN) */}
             <div 
               className={`
               w-full max-w-full font-serif text-[#2b2b2b] dark:text-gray-300 
               text-[17px] md:text-[20px] leading-[2] md:leading-[2.2] tracking-[0.01em]
-              
-              /* PENGUNCI LAYAR KANAN */
               break-words [word-break:break-word] overflow-wrap-anywhere
-
               [&>p]:mb-6 md:[&>p]:mb-8
-              
-              /* FORMATTING EDITOR */
               [&_.ql-align-center]:text-center [&_.ql-align-right]:text-right [&_.ql-align-justify]:text-justify
               [&_[style*="text-align: center"]]:text-center [&_[style*="text-align: right"]]:text-right [&_[style*="text-align: justify"]]:text-justify
               [&_[style*="text-align:center"]]:text-center [&_[style*="text-align:right"]]:text-right [&_[style*="text-align:justify"]]:text-justify
-              
               [&_b]:font-bold [&_strong]:font-bold
               [&_i]:italic [&_em]:italic
               [&_u]:underline
-              
               [&_.ql-size-small]:text-sm [&_.ql-size-large]:text-2xl md:[&_.ql-size-large]:text-3xl [&_.ql-size-huge]:text-4xl md:[&_.ql-size-huge]:text-5xl
-
               [&_a]:text-blue-600 dark:[&_a]:text-yellow-400 hover:[&_a]:underline
-              
-              /* CEGAH GAMBAR EDITOR NEMBUS KANAN */
               [&_img]:rounded-2xl [&_img]:my-8 [&_img]:max-w-full [&_img]:h-auto [&_img]:mx-auto [&_img]:shadow-md
-              
               [&_blockquote]:border-l-4 [&_blockquote]:border-yellow-500 [&_blockquote]:bg-gray-50 dark:[&_blockquote]:bg-[#15202b] 
               [&_blockquote]:py-5 [&_blockquote]:px-6 [&_blockquote]:rounded-r-xl [&_blockquote]:italic [&_blockquote]:my-10
-              
               ${isBararasa ? 'whitespace-pre-wrap' : ''}
               `}
               dangerouslySetInnerHTML={{ __html: displayContent }} 
@@ -264,7 +305,6 @@ export default function DetailBerita() {
                 </div>
               )}
 
-              {/* FOTO PROFIL REDAKSI */}
               {article.kredit && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-14 bg-gray-50 dark:bg-[#15202b] p-6 rounded-xl border border-gray-100 dark:border-gray-800">
                   
@@ -275,8 +315,6 @@ export default function DetailBerita() {
                   )}
 
                   <div className="text-[14px] text-gray-700 dark:text-gray-300 space-y-1.5 flex-1">
-                    
-                    {/* 🔥 LOGIKA TOMBOL PENULIS (KOTAK BAWAH) 🔥 */}
                     {article.kredit.penulis && (
                       <p>
                         <span className="font-bold text-[#0f2136] dark:text-gray-100">Penulis:</span>{' '}
@@ -289,7 +327,6 @@ export default function DetailBerita() {
                         )}
                       </p>
                     )}
-
                     {article.kredit.editor && (
                       <p><span className="font-bold text-[#0f2136] dark:text-gray-100">Editor:</span> {article.kredit.editor}</p>
                     )}
