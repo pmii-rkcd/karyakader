@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 // 🚀 IMPORT BARU UNTUK BACA PARAMETER PENCARIAN
 import { useSearchParams } from 'next/navigation';
 // 🚀 IMPORT LUCIDE ICONS
-import { Loader2, Instagram, Linkedin, ArrowRight, PenTool, SearchX } from 'lucide-react';
+import { Loader2, Instagram, Linkedin, ArrowRight, PenTool, SearchX, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Author {
   id: string;
@@ -23,10 +23,15 @@ interface Author {
   slug?: string; 
 }
 
+const ITEMS_PER_PAGE = 8; // 🔥 Jumlah Penulis per Halaman
+
 // ⚠️ KITA BUNGKUS KONTEN UTAMA DALAM KOMPONEN BARU 
 function PenulisContent() {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // State untuk Pagination
+  const [currentPage, setCurrentPage] = useState(1);
   
   // 🔥 TANGKAP KATA KUNCI PENCARIAN DARI URL (Misal: ?q=ahmad)
   const searchParams = useSearchParams();
@@ -53,12 +58,22 @@ function PenulisContent() {
     fetchAuthors();
   }, []);
 
+  // Reset ke halaman 1 jika user melakukan pencarian baru
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   // 🔥 FILTER DATA PENULIS BERDASARKAN PENCARIAN (NAMA/PERAN/BIO)
   const filteredAuthors = authors.filter(author =>
     author.name.toLowerCase().includes(searchQuery) ||
     author.role.toLowerCase().includes(searchQuery) ||
     author.bio.toLowerCase().includes(searchQuery)
   );
+
+  // 🔥 LOGIKA PAGINATION 🔥
+  const totalPages = Math.ceil(filteredAuthors.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentAuthors = filteredAuthors.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   if (isLoading) {
     return (
@@ -109,69 +124,116 @@ function PenulisContent() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredAuthors.map((author, index) => (
-            <motion.div 
-              key={author.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white dark:bg-[#0d1520] rounded-2xl border border-gray-100 dark:border-gray-800/60 overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col items-center text-center p-6 relative"
-            >
-              {/* Latar Belakang Aksen */}
-              <div className="absolute top-0 left-0 w-full h-24 bg-[#0f2136] dark:bg-black border-b-[3px] border-yellow-500 z-0"></div>
+        <div className="flex flex-col gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {currentAuthors.map((author, index) => (
+              <motion.div 
+                key={author.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-white dark:bg-[#0d1520] rounded-2xl border border-gray-100 dark:border-gray-800/60 overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col items-center text-center p-6 relative"
+              >
+                {/* Latar Belakang Aksen */}
+                <div className="absolute top-0 left-0 w-full h-24 bg-[#0f2136] dark:bg-black border-b-[3px] border-yellow-500 z-0"></div>
 
-              {/* Foto Profil */}
-              <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-[#0d1520] overflow-hidden shadow-md z-10 mt-6 mb-4 group-hover:scale-105 transition-transform duration-500 bg-gray-100">
-                <Image 
-                  src={author.imageUrl || 'https://via.placeholder.com/300?text=No+Photo'} 
-                  alt={author.name} 
-                  fill 
-                  className="object-cover"
-                  sizes="(max-width: 768px) 120px, 150px"
-                />
-              </div>
-
-              {/* Info Penulis */}
-              <div className="flex flex-col flex-1 z-10 w-full">
-                <h3 className="text-xl font-bold font-serif text-[#0f2136] dark:text-white group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors">
-                  {author.name}
-                </h3>
-                <p className="text-xs font-black text-yellow-600 dark:text-yellow-500 uppercase tracking-widest mt-1 mb-4">
-                  {author.role}
-                </p>
-                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6 line-clamp-3 px-2">
-                  {author.bio}
-                </p>
-
-                {/* Tombol Lihat Portofolio */}
-                <div className="mt-auto w-full pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-4">
-                  
-                  {/* Media Sosial */}
-                  <div className="flex justify-center gap-3">
-                    {author.instagram && (
-                      <a href={`https://instagram.com/${author.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-400 transition-colors">
-                        <Instagram className="w-4 h-4" />
-                      </a>
-                    )}
-                    {author.linkedin && (
-                      <a href={author.linkedin} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors">
-                        <Linkedin className="w-4 h-4" />
-                      </a>
-                    )}
-                  </div>
-
-                  <Link 
-                    href={`/penulis/${author.slug || author.id}`} 
-                    className="w-full bg-[#0f2136] dark:bg-yellow-500 text-white dark:text-[#0f2136] font-bold text-xs uppercase tracking-widest py-3 rounded-lg hover:bg-yellow-500 dark:hover:bg-yellow-400 hover:text-[#0f2136] transition-colors flex items-center justify-center gap-2"
-                  >
-                    Lihat Karya <ArrowRight className="w-4 h-4" />
-                  </Link>
-
+                {/* Foto Profil */}
+                <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-[#0d1520] overflow-hidden shadow-md z-10 mt-6 mb-4 group-hover:scale-105 transition-transform duration-500 bg-gray-100">
+                  <Image 
+                    src={author.imageUrl || 'https://via.placeholder.com/300?text=No+Photo'} 
+                    alt={author.name} 
+                    fill 
+                    className="object-cover"
+                    sizes="(max-width: 768px) 120px, 150px"
+                  />
                 </div>
+
+                {/* Info Penulis */}
+                <div className="flex flex-col flex-1 z-10 w-full">
+                  <h3 className="text-xl font-bold font-serif text-[#0f2136] dark:text-white group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors">
+                    {author.name}
+                  </h3>
+                  <p className="text-xs font-black text-yellow-600 dark:text-yellow-500 uppercase tracking-widest mt-1 mb-4">
+                    {author.role}
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6 line-clamp-3 px-2">
+                    {author.bio}
+                  </p>
+
+                  {/* Tombol Lihat Portofolio */}
+                  <div className="mt-auto w-full pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-4">
+                    
+                    <div className="flex justify-center gap-3">
+                      {author.instagram && (
+                        <a href={`https://instagram.com/${author.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 dark:hover:text-yellow-400 transition-colors">
+                          <Instagram className="w-4 h-4" />
+                        </a>
+                      )}
+                      {author.linkedin && (
+                        <a href={author.linkedin} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-colors">
+                          <Linkedin className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+
+                    <Link 
+                      href={`/penulis/${author.slug || author.id}`} 
+                      className="w-full bg-[#0f2136] dark:bg-yellow-500 text-white dark:text-[#0f2136] font-bold text-xs uppercase tracking-widest py-3 rounded-lg hover:bg-yellow-500 dark:hover:bg-yellow-400 hover:text-[#0f2136] transition-colors flex items-center justify-center gap-2"
+                    >
+                      Lihat Karya <ArrowRight className="w-4 h-4" />
+                    </Link>
+
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* 🔥 KONTROL PAGINATION 🔥 */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <button 
+                onClick={() => {
+                  setCurrentPage(prev => Math.max(prev - 1, 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-white dark:bg-[#0d1520] border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setCurrentPage(idx + 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`w-10 h-10 rounded-lg text-sm font-bold transition-all shadow-sm
+                      ${currentPage === idx + 1 
+                        ? 'bg-[#0f2136] dark:bg-yellow-500 text-white dark:text-[#0f2136] border border-transparent' 
+                        : 'bg-white dark:bg-[#0d1520] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800 hover:border-yellow-500 hover:text-yellow-600'}
+                    `}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
               </div>
-            </motion.div>
-          ))}
+
+              <button 
+                onClick={() => {
+                  setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-white dark:bg-[#0d1520] border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </main>
