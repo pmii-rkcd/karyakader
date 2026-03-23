@@ -17,11 +17,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter(); 
   const isAdminPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/login');
   
+  // 🔥 DETEKSI HALAMAN PENULIS / SUB-DOMAIN 🔥
+  const isPenulisPath = pathname?.startsWith('/penulis');
+  const [isPenulisDomain, setIsPenulisDomain] = useState(false);
+  
   const [settings, setSettings] = useState<any>({});
   const [aboutSettings, setAboutSettings] = useState<any>({});
   const [searchQuery, setSearchQuery] = useState('');
   
-  // STATE BARU: Untuk mengontrol buka-tutup pencarian di layar HP
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const { theme, setTheme } = useTheme();
@@ -29,7 +32,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Cek apakah diakses dari sub-domain penulis.karyakader.id
+    if (typeof window !== 'undefined') {
+      setIsPenulisDomain(window.location.hostname.includes('penulis.'));
+    }
+
     if (isAdminPage) return;
+    
     const fetchSettings = async () => {
       const generalSnap = await getDoc(doc(db, 'settings', 'general'));
       const aboutSnap = await getDoc(doc(db, 'settings', 'about'));
@@ -39,10 +49,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     fetchSettings();
   }, [isAdminPage]);
 
+  // Variabel untuk menyembunyikan menu kanal
+  const hideNavKanal = isPenulisPath || isPenulisDomain;
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      setIsMobileSearchOpen(false); // Tutup overlay setelah submit
+      setIsMobileSearchOpen(false); 
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
@@ -58,7 +71,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans">
       
-      {/* === TOP BAR (Akan hilang saat layar di-scroll ke bawah) === */}
+      {/* === TOP BAR === */}
       <div className="bg-[#0f2136] dark:bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-8 flex flex-wrap justify-between items-center border-b border-gray-800 gap-2 transition-colors duration-500 relative z-[70]">
         <div className="flex items-center gap-2 font-medium tracking-wide">
           <Calendar className="w-3.5 h-3.5 text-yellow-500 hidden sm:block" />
@@ -88,10 +101,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <div className="sticky top-0 z-[60] w-full flex flex-col shadow-md transition-colors duration-500 bg-white dark:bg-[#0d1520]">
         
         {/* HEADER LOGO & PENCARIAN */}
-        {/* PERBAIKAN: Padding atas bawah dikurangi di HP (py-2.5) agar lebih tipis */}
         <header className="relative py-2.5 sm:py-4 px-4 md:px-8 flex justify-between items-center transition-colors duration-500 w-full min-h-[60px] sm:min-h-[72px]">
           
-          {/* PERBAIKAN: Spacer dihapus, mr-auto ditambahkan agar logo mentok ke kiri */}
           <Link href="/" className="flex items-center justify-start gap-2.5 sm:gap-4 group z-10 mr-auto shrink-0">
             {settings.logoUrl ? (
               <div className="relative w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 shrink-0">
@@ -116,7 +127,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 transition-colors"><Search className="w-4 h-4" /></button>
           </form>
 
-          {/* TOMBOL PENCARIAN MOBILE UI/UX MODERN */}
+          {/* TOMBOL PENCARIAN MOBILE */}
           <button 
             type="button" 
             onClick={() => setIsMobileSearchOpen(true)}
@@ -155,19 +166,19 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           )}
         </header>
 
-        {/* NAVBAR MENU KANAL */}
-        {/* PERBAIKAN: Padding py-3 diubah jadi py-2 di HP agar menu lebih tipis */}
-        <nav className="bg-[#0f2136]/95 dark:bg-[#0a0f18]/90 backdrop-blur-md text-white border-b-[3px] border-yellow-500 overflow-x-auto w-full no-scrollbar shadow-sm">
-          <ul className="flex flex-nowrap items-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] font-bold uppercase tracking-widest w-max min-w-full px-4 py-2 sm:py-3 md:px-8 justify-start md:justify-center">
-            {/* PERBAIKAN: Padding dalam link juga ditipiskan (py-1.5) */}
-            <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
-            <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
-            <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
-            <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
-            <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
-            <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
-          </ul>
-        </nav>
+        {/* 🔥 NAVBAR MENU KANAL (DISEMBUNYIKAN DI HALAMAN PENULIS) 🔥 */}
+        {!hideNavKanal && (
+          <nav className="bg-[#0f2136]/95 dark:bg-[#0a0f18]/90 backdrop-blur-md text-white border-b-[3px] border-yellow-500 overflow-x-auto w-full no-scrollbar shadow-sm">
+            <ul className="flex flex-nowrap items-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] font-bold uppercase tracking-widest w-max min-w-full px-4 py-2 sm:py-3 md:px-8 justify-start md:justify-center">
+              <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
+              <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
+              <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
+              <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
+              <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
+              <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
+            </ul>
+          </nav>
+        )}
       </div>
 
       {/* === MAIN CONTENT === */}
@@ -177,9 +188,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* === FOOTER === */}
       <footer className="bg-[#0a1727] dark:bg-[#05080f] text-gray-400 py-16 px-4 md:px-8 border-t-[4px] border-yellow-500 transition-colors duration-500 relative z-10 w-full">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
           
-          <div className="space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             <div className="flex items-center gap-4">
                 {settings.logoUrl ? <img src={settings.logoUrl} alt="Logo" className="w-12 h-12 rounded-full object-cover border-2 border-yellow-500" /> : <div className="w-12 h-12 bg-[#0f2136] rounded-full border-2 border-yellow-500 flex items-center justify-center text-yellow-500 font-bold text-[10px]">LOGO</div>}
                 <div>
@@ -196,23 +207,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </div>
 
           <div>
-            <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Ikuti Kami</h3>
-            <ul className="space-y-4 text-sm font-medium">
-              <li><a href={settings.instagram || '#'} target="_blank" className="flex items-center gap-3 hover:text-yellow-400 transition-colors"><Instagram className="w-4 h-4" /> Instagram</a></li>
-              <li><a href={settings.youtube || '#'} target="_blank" className="flex items-center gap-3 hover:text-yellow-400 transition-colors"><Youtube className="w-4 h-4" /> YouTube</a></li>
-              <li>
-                <a href={settings.tiktok || '#'} target="_blank" className="flex items-center gap-3 hover:text-yellow-400 transition-colors">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg> 
-                  TikTok
-                </a>
-              </li>
-              <li><a href={settings.linkedin || '#'} target="_blank" className="flex items-center gap-3 hover:text-yellow-400 transition-colors"><Linkedin className="w-4 h-4" /> LinkedIn</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Navigasi</h3>
-            <ul className="space-y-3 text-sm font-medium">
+            <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2 shrink-0"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Navigasi & Sosial</h3>
+            <ul className="space-y-3 text-sm font-medium mb-6">
               <li><Link href="/" className="hover:text-yellow-400 transition-colors">Beranda</Link></li>
               <li><Link href="/bararasa" className="hover:text-yellow-400 transition-colors">Bararasa</Link></li>
               <li><Link href="/kabar" className="hover:text-yellow-400 transition-colors">Kabar Dari Kawah</Link></li>
@@ -220,15 +216,36 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <li><Link href="/nalar" className="hover:text-yellow-400 transition-colors">Nalar Tempaan</Link></li>
               <li><Link href="/tentang" className="hover:text-yellow-400 transition-colors">Tentang Kami</Link></li>
             </ul>
+            <div className="flex gap-4">
+              <a href={settings.instagram || '#'} target="_blank" className="hover:text-yellow-400 transition-colors"><Instagram className="w-5 h-5" /></a>
+              <a href={settings.youtube || '#'} target="_blank" className="hover:text-yellow-400 transition-colors"><Youtube className="w-5 h-5" /></a>
+              <a href={settings.tiktok || '#'} target="_blank" className="hover:text-yellow-400 transition-colors">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg> 
+              </a>
+              <a href={settings.linkedin || '#'} target="_blank" className="hover:text-yellow-400 transition-colors"><Linkedin className="w-5 h-5" /></a>
+            </div>
           </div>
 
-          <div>
-            <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Redaksi</h3>
-            <div className="bg-gray-800/50 p-5 rounded-xl border border-gray-700/50">
-              <h4 className="text-white font-bold mb-2">Punya Tulisan Menarik?</h4>
-              <p className="text-xs text-gray-400 mb-5 leading-relaxed">Kirimkan opini, puisi, atau liputan kegiatanmu ke redaksi kami untuk dipublikasikan.</p>
-              <a href={`https://wa.me/${settings.phone || '6285748203760'}`} target="_blank" className="w-full bg-yellow-500 text-[#0f2136] font-bold py-2.5 px-4 rounded-lg hover:bg-yellow-400 transition-colors flex justify-center items-center gap-2 text-sm">
-                Hubungi Redaksi <Send className="w-4 h-4" />
+          {/* 🔥 KOLOM BARU: WEB PENULIS (DIPERKUAT ANTI-JEBOL) 🔥 */}
+          <div className="flex flex-col">
+            <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2 shrink-0"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Web Penulis</h3>
+            <div className="bg-gray-800/50 p-5 rounded-xl border border-gray-700/50 flex-1 flex flex-col">
+              <h4 className="text-white font-bold mb-2 shrink-0">Portofolio Kader</h4>
+              <p className="text-xs text-gray-400 mb-6 leading-relaxed flex-1">Kenali lebih dekat rekam jejak, profil, dan karya-karya hebat dari para penulis PMII.</p>
+              <Link href="/penulis" className="w-full bg-transparent border-2 border-yellow-500 text-yellow-500 font-bold py-2.5 px-4 rounded-lg hover:bg-yellow-500 hover:text-[#0f2136] transition-colors flex justify-center items-center gap-2 text-sm text-center shrink-0">
+                Penulis
+              </Link>
+            </div>
+          </div>
+
+          {/* KOLOM REDAKSI (DIPERKUAT ANTI-JEBOL) */}
+          <div className="flex flex-col">
+            <h3 className="text-white font-bold text-sm tracking-widest uppercase mb-6 flex items-center gap-2 shrink-0"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Redaksi</h3>
+            <div className="bg-gray-800/50 p-5 rounded-xl border border-gray-700/50 flex-1 flex flex-col">
+              <h4 className="text-white font-bold mb-2 shrink-0">Punya Tulisan?</h4>
+              <p className="text-xs text-gray-400 mb-6 leading-relaxed flex-1">Kirimkan opini, puisi, atau liputan kegiatanmu ke redaksi kami untuk dipublikasikan.</p>
+              <a href={`https://wa.me/${settings.phone || '6285748203760'}`} target="_blank" className="w-full bg-yellow-500 text-[#0f2136] font-bold py-2.5 px-4 rounded-lg hover:bg-yellow-400 transition-colors flex justify-center items-center gap-2 text-sm text-center shrink-0">
+                Redaksi <Send className="w-4 h-4" />
               </a>
             </div>
           </div>

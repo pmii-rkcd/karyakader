@@ -15,11 +15,24 @@ interface Author {
   imageUrl: string;
   instagram: string;
   linkedin: string;
+  slug?: string; // 🔥 TAMBAHAN FIELD SLUG
 }
 
 // 🔥 SEKARANG OTOMATIS AMBIL DARI .env.local 🔥
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""; 
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
+
+// 🔥 FUNGSI PEMBUAT SLUG OTOMATIS DARI NAMA 🔥
+const generateSlug = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, '-')           // Ganti spasi dengan strip (-)
+    .replace(/[^\w\-]+/g, '')       // Hapus karakter khusus selain huruf/angka
+    .replace(/\-\-+/g, '-')         // Cegah ada double strip (--)
+    .replace(/^-+/, '')             // Hapus strip di awal teks
+    .replace(/-+$/, '');            // Hapus strip di akhir teks
+};
 
 export default function ManajemenPenulisPage() {
   const [authors, setAuthors] = useState<Author[]>([]);
@@ -119,9 +132,13 @@ export default function ManajemenPenulisPage() {
         }
       }
 
+      // 🔥 MEMBUAT SLUG DARI NAMA YANG DIINPUT 🔥
+      const authorSlug = generateSlug(name);
+
       // Simpan data text + Link ke Firestore
       const authorData = {
         name,
+        slug: authorSlug, // Masukkan slug ke database
         role,
         bio,
         instagram,
@@ -210,6 +227,10 @@ export default function ManajemenPenulisPage() {
                         <div>
                           <p className="font-bold text-[#0f2136] text-sm md:text-base">{author.name}</p>
                           <p className="text-xs text-yellow-600 font-bold uppercase tracking-wider mt-0.5">{author.role}</p>
+                          {/* 🔥 MENAMPILKAN SLUG AGAR ADMIN TAHU URL-NYA 🔥 */}
+                          {author.slug && (
+                            <p className="text-[10px] text-gray-400 mt-1">/{author.slug}</p>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -249,7 +270,6 @@ export default function ManajemenPenulisPage() {
 
             <form onSubmit={handleSave} className="p-5 md:p-6 space-y-6">
               
-              {/* Tombol Upload File Biasa */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Foto Profil</label>
                 <div className="flex items-center gap-6">
@@ -260,16 +280,18 @@ export default function ManajemenPenulisPage() {
                       <div className="w-full h-full flex items-center justify-center text-gray-400"><Upload className="w-8 h-8" /></div>
                     )}
                   </div>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={(e) => { 
-                      if (e.target.files && e.target.files[0]) setImageFile(e.target.files[0]); 
-                    }} 
-                    className="text-sm file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#0f2136] file:text-white hover:file:bg-yellow-500 hover:file:text-[#0f2136] cursor-pointer transition-colors" 
-                  />
-                </div>Gambar harus kelihatan wajah dengan jelas.
-                <p className="text-xs text-gray-400 mt-2"></p>
+                  <div className="flex flex-col gap-2">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => { 
+                        if (e.target.files && e.target.files[0]) setImageFile(e.target.files[0]); 
+                      }} 
+                      className="text-sm file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-[#0f2136] file:text-white hover:file:bg-yellow-500 hover:file:text-[#0f2136] cursor-pointer transition-colors" 
+                    />
+                    <p className="text-xs text-gray-400">Gambar harus kelihatan wajah dengan jelas.</p>
+                  </div>
+                </div>
               </div>
 
               {/* Form Input */}

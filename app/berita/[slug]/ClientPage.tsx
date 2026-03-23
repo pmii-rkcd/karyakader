@@ -41,6 +41,9 @@ export default function DetailBerita() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 🔥 STATE BARU: Menyimpan ID Portofolio Penulis jika ditemukan
+  const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
+
   const [commentName, setCommentName] = useState('');
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -66,6 +69,15 @@ export default function DetailBerita() {
             sessionStorage.setItem(`viewed_${docData.id}`, 'true');
           } else {
             setArticle({ ...articleData, id: docData.id, views: articleData.views || 0 });
+          }
+
+          // 🔥 RADAR PENCARI PENULIS: Cek apakah nama penulis ada di data Portofolio
+          if (articleData.kredit?.penulis && articleData.kredit.penulis !== 'Redaksi') {
+            const authorQuery = query(collection(db, 'authors'), where('name', '==', articleData.kredit.penulis), limit(1));
+            const authorSnap = await getDocs(authorQuery);
+            if (!authorSnap.empty) {
+              setAuthorProfileId(authorSnap.docs[0].id); // Simpan ID penulisnya
+            }
           }
 
           const [commentsSnap, relatedSnap] = await Promise.all([
@@ -161,10 +173,20 @@ export default function DetailBerita() {
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 mb-8 bg-gray-50/50 dark:bg-[#15202b]/50 px-4 rounded-xl border border-gray-100 dark:border-gray-800">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] md:text-[13px] text-gray-600 dark:text-gray-400">
-                <span className="flex items-center gap-2 font-bold text-[#0f2136] dark:text-gray-200 uppercase tracking-wide border-r border-gray-300 dark:border-gray-700 pr-5">
-                  <User className="w-4 h-4 text-yellow-500" />
-                  {article.kredit?.penulis || 'Redaksi'}
-                </span>
+                
+                {/* 🔥 LOGIKA TOMBOL PENULIS (ATAS) 🔥 */}
+                {authorProfileId ? (
+                  <Link href={`/penulis/${authorProfileId}`} className="flex items-center gap-2 font-bold text-blue-600 dark:text-yellow-400 hover:text-blue-800 dark:hover:text-yellow-300 uppercase tracking-wide border-r border-gray-300 dark:border-gray-700 pr-5 transition-colors group">
+                    <User className="w-4 h-4 text-yellow-500 group-hover:scale-110 transition-transform" />
+                    {article.kredit?.penulis}
+                  </Link>
+                ) : (
+                  <span className="flex items-center gap-2 font-bold text-[#0f2136] dark:text-gray-200 uppercase tracking-wide border-r border-gray-300 dark:border-gray-700 pr-5">
+                    <User className="w-4 h-4 text-yellow-500" />
+                    {article.kredit?.penulis || 'Redaksi'}
+                  </span>
+                )}
+
                 <span className="flex items-center gap-2 font-medium">
                   <CalendarDays className="w-4 h-4 text-gray-400" />
                   {formattedDate}
@@ -253,9 +275,21 @@ export default function DetailBerita() {
                   )}
 
                   <div className="text-[14px] text-gray-700 dark:text-gray-300 space-y-1.5 flex-1">
+                    
+                    {/* 🔥 LOGIKA TOMBOL PENULIS (KOTAK BAWAH) 🔥 */}
                     {article.kredit.penulis && (
-                      <p><span className="font-bold text-[#0f2136] dark:text-gray-100">Penulis:</span> {article.kredit.penulis}</p>
+                      <p>
+                        <span className="font-bold text-[#0f2136] dark:text-gray-100">Penulis:</span>{' '}
+                        {authorProfileId ? (
+                          <Link href={`/penulis/${authorProfileId}`} className="text-blue-600 dark:text-yellow-400 hover:text-blue-800 dark:hover:text-yellow-300 hover:underline font-semibold transition-colors">
+                            {article.kredit.penulis}
+                          </Link>
+                        ) : (
+                          article.kredit.penulis
+                        )}
+                      </p>
                     )}
+
                     {article.kredit.editor && (
                       <p><span className="font-bold text-[#0f2136] dark:text-gray-100">Editor:</span> {article.kredit.editor}</p>
                     )}

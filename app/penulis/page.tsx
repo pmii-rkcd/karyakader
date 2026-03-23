@@ -18,6 +18,7 @@ interface Author {
   imageUrl: string;
   instagram: string;
   linkedin: string;
+  slug?: string; // 🔥 TAMBAHAN FIELD SLUG
 }
 
 export default function DaftarPenulisPage() {
@@ -132,9 +133,14 @@ export default function DaftarPenulisPage() {
                     )}
                   </div>
 
-                  <Link href={`/penulis/${author.id}`} className="w-full bg-[#0f2136] dark:bg-yellow-500 text-white dark:text-[#0f2136] font-bold text-xs uppercase tracking-widest py-3 rounded-lg hover:bg-yellow-500 dark:hover:bg-yellow-400 hover:text-[#0f2136] transition-colors flex items-center justify-center gap-2">
+                  {/* 🔥 LOGIKA TOMBOL KARYA BERDASARKAN SLUG/ID 🔥 */}
+                  <Link 
+                    href={`/penulis/${author.slug || author.id}`} 
+                    className="w-full bg-[#0f2136] dark:bg-yellow-500 text-white dark:text-[#0f2136] font-bold text-xs uppercase tracking-widest py-3 rounded-lg hover:bg-yellow-500 dark:hover:bg-yellow-400 hover:text-[#0f2136] transition-colors flex items-center justify-center gap-2"
+                  >
                     Lihat Karya <ArrowRight className="w-4 h-4" />
                   </Link>
+
                 </div>
               </div>
             </motion.div>

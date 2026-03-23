@@ -78,7 +78,7 @@ export default function HomePage() {
   const restArticles = articles.length > 1 ? articles.slice(1) : [];
 
   // ==========================================
-  // DESAIN 1: KARTU STANDAR (Gambar Atas, Teks Bawah) - Dipakai untuk Hero & Grid 2 Kolom
+  // DESAIN 1: KARTU STANDAR (Gambar Atas, Teks Bawah)
   // ==========================================
   const renderStandardCard = (article: Article, isLarge = false) => (
     <div key={article.id} className="bg-white dark:bg-[#0d1520] rounded-2xl border border-gray-100 dark:border-gray-800/60 overflow-hidden hover:shadow-xl transition-all duration-500 group flex flex-col h-full min-w-0 max-w-full">
@@ -99,14 +99,18 @@ export default function HomePage() {
         </p>
         <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">
           <span className="truncate flex items-center gap-1.5"><Clock className="w-3 h-3 text-red-600" /> {formatDate(article.createdAt)}</span>
-          <span className="shrink-0 flex items-center gap-1"><Eye className="w-3 h-3" /> {article.views || 0}</span>
+          {/* 🔥 DITAMBAHKAN VIEWS & COMMENTS 🔥 */}
+          <div className="shrink-0 flex items-center gap-3">
+            <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {article.views || 0}</span>
+            <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> {article.commentCount || 0}</span>
+          </div>
         </div>
       </div>
     </div>
   );
 
   // ==========================================
-  // DESAIN 2: KARTU LIST PANJANG (Gambar Kiri Besar, Teks Kanan) - Ala "Pendidikan/Olahraga"
+  // DESAIN 2: KARTU LIST PANJANG (Gambar Kiri Besar, Teks Kanan)
   // ==========================================
   const renderListCard = (article: Article) => (
     <div key={article.id} className="flex flex-col sm:flex-row gap-4 sm:gap-6 bg-transparent py-4 sm:py-5 border-b border-gray-100 dark:border-gray-800/60 last:border-0 group min-w-0 max-w-full">
@@ -122,9 +126,12 @@ export default function HomePage() {
             {article.title}
           </h4>
         </Link>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-2 sm:mb-3">
-          <span className="text-red-600">BY <span className="font-bold">{article.kredit?.penulis || 'REDAKSI'}</span></span>
-          <span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> {formatDate(article.createdAt)}</span>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-2 sm:mb-3">
+          <span className="text-red-600 shrink-0">BY <span className="font-bold">{article.kredit?.penulis || 'REDAKSI'}</span></span>
+          <span className="flex items-center gap-1.5 shrink-0"><Clock className="w-3 h-3" /> {formatDate(article.createdAt)}</span>
+          {/* 🔥 DITAMBAHKAN VIEWS & COMMENTS 🔥 */}
+          <span className="flex items-center gap-1.5 shrink-0"><Eye className="w-3 h-3" /> {article.views || 0}</span>
+          <span className="flex items-center gap-1.5 shrink-0"><MessageSquare className="w-3 h-3" /> {article.commentCount || 0}</span>
         </div>
         <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-4 sm:mb-5 leading-relaxed line-clamp-2 sm:line-clamp-3 break-words">
           {stripHtmlAndTruncate(article.content, 180)}
@@ -139,7 +146,7 @@ export default function HomePage() {
   );
 
   // ==========================================
-  // DESAIN 3: KARTU LIST MINI (Gambar Kiri Kecil, Teks Kanan) - Ala Sidebar/Hero Kanan
+  // DESAIN 3: KARTU LIST MINI (Gambar Kiri Kecil, Teks Kanan)
   // ==========================================
   const renderHorizontalMiniCard = (article: Article) => (
     <Link href={`/berita/${article.slug}`} key={article.id} className="group flex items-start gap-3 sm:gap-4 bg-transparent hover:bg-white dark:hover:bg-[#0d1520] p-2 sm:p-3 rounded-xl transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-800/60 overflow-hidden w-full max-w-full">
@@ -154,14 +161,16 @@ export default function HomePage() {
           {stripHtmlAndTruncate(article.content, 60)}
         </div>
         <div className="flex items-center gap-2 text-[9px] text-gray-400 uppercase tracking-widest mt-auto font-bold">
-          <Clock className="w-2.5 h-2.5" /> {formatDate(article.createdAt)}
+          <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {formatDate(article.createdAt)}</span>
+          {/* 🔥 DITAMBAHKAN VIEWS 🔥 */}
+          <span className="flex items-center gap-1 ml-auto"><Eye className="w-2.5 h-2.5" /> {article.views || 0}</span>
         </div>
       </div>
     </Link>
   );
 
   // ==========================================
-  // DESAIN 4: KARTU GRID MINI 3 KOLOM (Gambar Atas, Judul, Tanpa Excerpt) - Ala "Asli Malang"
+  // DESAIN 4: KARTU GRID MINI 3 KOLOM (Nalar Tempaan)
   // ==========================================
   const renderGridMiniCard = (article: Article) => (
     <Link href={`/berita/${article.slug}`} key={article.id} className="group flex flex-col gap-2.5 w-full min-w-0 max-w-full">
@@ -174,8 +183,13 @@ export default function HomePage() {
       <h4 className="text-[15px] sm:text-[17px] font-bold font-serif text-[#0f2136] dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug px-1">
         {article.title}
       </h4>
-      <div className="flex items-center gap-1.5 text-[9px] text-gray-500 px-1 font-medium tracking-wider">
-        <Clock className="w-2.5 h-2.5 text-gray-400" /> {formatDate(article.createdAt)}
+      <div className="flex items-center justify-between text-[9px] text-gray-500 px-1 font-medium tracking-wider">
+        <span className="flex items-center gap-1.5"><Clock className="w-2.5 h-2.5 text-gray-400" /> {formatDate(article.createdAt)}</span>
+        {/* 🔥 DITAMBAHKAN VIEWS & COMMENTS 🔥 */}
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1"><Eye className="w-2.5 h-2.5" /> {article.views || 0}</span>
+          <span className="flex items-center gap-1"><MessageSquare className="w-2.5 h-2.5" /> {article.commentCount || 0}</span>
+        </div>
       </div>
     </Link>
   );
@@ -208,6 +222,9 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-center gap-4 text-[10px] sm:text-xs text-gray-300 mt-4 sm:mt-6 font-bold uppercase tracking-wider">
                   <span className="flex items-center gap-1.5 truncate"><User className="w-3.5 h-3.5 text-yellow-500 shrink-0" /> <span className="truncate">{headline.kredit?.penulis || 'Redaksi'}</span></span>
                   <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-yellow-500" /> {formatDate(headline.createdAt)}</span>
+                  {/* 🔥 DITAMBAHKAN VIEWS & COMMENTS DI HERO 🔥 */}
+                  <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-yellow-500" /> {headline.views || 0}</span>
+                  <span className="flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5 text-yellow-500" /> {headline.commentCount || 0}</span>
                 </div>
               </div>
             </div>
@@ -222,7 +239,7 @@ export default function HomePage() {
           return (
             <motion.div key={cat.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="w-full max-w-full min-w-0">
               
-              {/* JUDUL KANAL (Header Line Merah ala Media Nasional) */}
+              {/* JUDUL KANAL */}
               <div className="border-b-[3px] border-gray-200 dark:border-gray-800 pb-2 mb-6 md:mb-8 flex items-center relative">
                 <div className="absolute -bottom-[3px] left-0 w-24 md:w-32 h-[3px] bg-red-600"></div>
                 <h3 className="font-sans text-[#0f2136] dark:text-white font-black text-[18px] md:text-[22px] tracking-wide uppercase truncate">{cat.name}</h3>

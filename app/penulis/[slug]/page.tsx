@@ -1,4 +1,4 @@
-// app/penulis/[id]/page.tsx
+// app/penulis/[slug]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,10 +6,9 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { motion } from 'framer-motion';
-// 🚀 PERBAIKAN: PenTool sudah ditambahkan ke dalam daftar import di bawah ini
-import { Loader2, Instagram, Linkedin, ArrowLeft, Clock, Eye, User, FileText, PenTool } from 'lucide-react';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+// 🚀 IMPORT LUCIDE ICONS
+import { Loader2, Instagram, Linkedin, ArrowLeft, Clock, Eye, FileText, PenTool } from 'lucide-react';
 
 interface Author {
   id: string;
@@ -19,6 +18,7 @@ interface Author {
   imageUrl: string;
   instagram: string;
   linkedin: string;
+  slug?: string; // 🔥 Field baru untuk URL rapi
 }
 
 interface Article {
@@ -48,27 +48,41 @@ const formatDate = (timestamp: any) => {
 
 export default function DetailPenulisPage() {
   const params = useParams();
-  const id = params?.id as string;
+  // Tangkap parameter dari URL (bisa berupa slug rapi atau ID acak lama)
+  const slugOrId = params?.slug as string;
   
   const [author, setAuthor] = useState<Author | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (!slugOrId) return;
 
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // 1. Ambil Data Profil Penulis
-        const authorRef = doc(db, 'authors', id);
-        const authorSnap = await getDoc(authorRef);
+        let authorData: Author | null = null;
+
+        // 🔥 LOGIKA BARU: Cari berdasarkan SLUG terlebih dahulu
+        const q = query(collection(db, 'authors'), where('slug', '==', slugOrId));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          // Jika ketemu pakai slug
+          authorData = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as Author;
+        } else {
+          // Jika tidak ketemu, coba cari pakai ID acak (Fallback untuk data lama)
+          const docRef = doc(db, 'authors', slugOrId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            authorData = { id: docSnap.id, ...docSnap.data() } as Author;
+          }
+        }
         
-        if (authorSnap.exists()) {
-          const authorData = { id: authorSnap.id, ...authorSnap.data() } as Author;
+        if (authorData) {
           setAuthor(authorData);
 
-          // 2. Ambil Berita yang ditulis oleh penulis ini
+          // Ambil Berita yang ditulis oleh penulis ini
           const articlesQuery = query(
             collection(db, 'articles'),
             where('kredit.penulis', '==', authorData.name)
@@ -89,7 +103,7 @@ export default function DetailPenulisPage() {
     };
 
     fetchData();
-  }, [id]);
+  }, [slugOrId]);
 
   if (isLoading) {
     return (
