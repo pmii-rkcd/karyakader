@@ -19,6 +19,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const article = querySnapshot.docs[0].data();
     let plainText = article.content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
     const shortDesc = plainText.substring(0, 150) + '...';
+    
+    // 🔥 SABUK PENGAMAN: Jika lupa kasih foto, pakai Logo PMII
+    const imageUrl = article.imageUrl || 'https://karyakader.id/logo-pmii.png';
 
     return {
       title: `${article.title} - Karyakader.id`,
@@ -28,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description: shortDesc,
         url: `https://karyakader.id/berita/${slug}`,
         siteName: 'Karya Kader',
-        images: [{ url: article.imageUrl, width: 1200, height: 630, alt: article.title }],
+        images: [{ url: imageUrl, width: 1200, height: 630, alt: article.title }],
         locale: 'id_ID',
         type: 'article',
       },
@@ -36,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         card: 'summary_large_image',
         title: article.title,
         description: shortDesc,
-        images: [article.imageUrl],
+        images: [imageUrl],
       },
     };
   } catch (error) {
@@ -63,7 +66,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         '@context': 'https://schema.org',
         '@type': 'NewsArticle',
         headline: article.title,
-        image: [article.imageUrl],
+        image: [article.imageUrl || 'https://karyakader.id/logo-pmii.png'],
         datePublished: datePublished,
         dateModified: dateModified,
         author: [{
@@ -76,7 +79,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           name: 'Karya Kader',
           logo: {
             '@type': 'ImageObject',
-            url: 'https://karyakader.id/logo.png'
+            url: 'https://karyakader.id/logo-pmii.png' // Pastikan logo ini ada saat sudah online
           }
         }
       };
@@ -93,10 +96,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-      {/* PERBAIKAN UTAMA: 
-          Kita harus memanggil ClientPage dan memastikan dia merender ulang 
-          berdasarkan params yang baru.
-      */}
+      {/* Memanggil ClientPage untuk tampilan UI-nya */}
       <ClientPage />
     </>
   );
