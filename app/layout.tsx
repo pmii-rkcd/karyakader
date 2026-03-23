@@ -39,9 +39,15 @@ export const metadata: Metadata = {
     images: ['/logo-pmii.png'], // Sama seperti gambar OG
   },
   
+  // 🔥 PERBAIKAN IKON GLOBE: Memaksa Next.js membaca icon.png 🔥
   icons: {
-    icon: '/favicon.ico', // Pastikan ada file favicon.ico atau icon.png di dalam folder "public"
-    apple: '/apple-touch-icon.png',
+    icon: [
+      { url: '/icon.png', type: 'image/png' },
+      { url: '/favicon.ico' } // Cadangan
+    ],
+    apple: [
+      { url: '/icon.png' } // Agar logonya juga muncul jika di-save ke Homescreen iPhone
+    ],
   },
 };
 

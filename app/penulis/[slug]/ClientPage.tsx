@@ -1,6 +1,7 @@
 // app/penulis/[slug]/ClientPage.tsx
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 // 🚀 IMPORT LUCIDE ICONS
@@ -21,6 +22,23 @@ const formatDate = (timestamp: any) => {
 
 // Menerima data yang sudah di-fetch oleh Server
 export default function DetailPenulisClient({ author, articles }: { author: any, articles: any[] }) {
+  
+  // 🔥 RADAR DOMAIN: Deteksi apakah dibuka dari sub-domain 'penulis.'
+  const [mainDomainUrl, setMainDomainUrl] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      // Jika mendeteksi sub-domain 'penulis.'
+      if (host.includes('penulis.')) {
+        const protocol = window.location.protocol;
+        const port = window.location.port ? `:${window.location.port}` : '';
+        // Coret kata 'penulis.' untuk mendapatkan domain utama (karyakader.id / localhost)
+        const mainHost = host.replace('penulis.', '');
+        setMainDomainUrl(`${protocol}//${mainHost}${port}`);
+      }
+    }
+  }, []);
 
   return (
     <main className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 md:py-12 min-h-screen w-full min-w-0">
@@ -88,28 +106,37 @@ export default function DetailPenulisClient({ author, articles }: { author: any,
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              {articles.map((article) => (
-                <Link href={`/berita/${article.slug}`} key={article.id} className="group flex flex-col sm:flex-row gap-5 bg-white dark:bg-[#0d1520] p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-gray-800/60 hover:shadow-xl hover:border-yellow-500/50 transition-all duration-300 min-w-0">
-                  <div className="relative w-full sm:w-[200px] md:w-[240px] aspect-[4/3] rounded-xl overflow-hidden shrink-0 shadow-sm">
-                    <Image src={article.imageUrl} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="(max-width: 640px) 100vw, 240px" />
-                    <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 uppercase tracking-wider rounded-sm shadow">
-                      {article.category}
-                    </span>
-                  </div>
-                  <div className="flex-1 flex flex-col min-w-0">
-                    <h3 className="text-lg md:text-xl font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-2 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug">
-                      {article.title}
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-4 leading-relaxed line-clamp-2 break-words">
-                      {stripHtmlAndTruncate(article.content, 150)}
-                    </p>
-                    <div className="mt-auto flex flex-wrap items-center gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider border-t border-gray-100 dark:border-gray-800 pt-3">
-                      <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-yellow-600" /> {formatDate(article.createdAt)}</span>
-                      <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> {article.views || 0} Dilihat</span>
+              {articles.map((article) => {
+                
+                // 🔥 LOGIKA LINK OTOMATIS 🔥
+                // Jika web mendeteksi dibuka dari sub-domain, arahkan link secara paksa ke domain utama.
+                const targetUrl = mainDomainUrl 
+                  ? `${mainDomainUrl}/berita/${article.slug}` 
+                  : `/berita/${article.slug}`;
+
+                return (
+                  <Link href={targetUrl} key={article.id} className="group flex flex-col sm:flex-row gap-5 bg-white dark:bg-[#0d1520] p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-gray-800/60 hover:shadow-xl hover:border-yellow-500/50 transition-all duration-300 min-w-0">
+                    <div className="relative w-full sm:w-[200px] md:w-[240px] aspect-[4/3] rounded-xl overflow-hidden shrink-0 shadow-sm">
+                      <Image src={article.imageUrl} alt={article.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="(max-width: 640px) 100vw, 240px" />
+                      <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 uppercase tracking-wider rounded-sm shadow">
+                        {article.category}
+                      </span>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                    <div className="flex-1 flex flex-col min-w-0">
+                      <h3 className="text-lg md:text-xl font-bold font-serif text-[#0f2136] dark:text-gray-100 mb-2 group-hover:text-blue-700 dark:group-hover:text-yellow-400 transition-colors line-clamp-2 leading-snug">
+                        {article.title}
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-4 leading-relaxed line-clamp-2 break-words">
+                        {stripHtmlAndTruncate(article.content, 150)}
+                      </p>
+                      <div className="mt-auto flex flex-wrap items-center gap-3 text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider border-t border-gray-100 dark:border-gray-800 pt-3">
+                        <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-yellow-600" /> {formatDate(article.createdAt)}</span>
+                        <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> {article.views || 0} Dilihat</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
