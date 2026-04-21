@@ -10,10 +10,14 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfa
 // === SEO & META TAGS GLOBAL ===
 export const metadata: Metadata = {
   title: 'Karya Kader - PR. PMII "KAWAH" Chondrodimuko',
-  description: 'Portal Berita Resmi Pergerakan Mahasiswa Islam Indonesia (PMII) Rayon Kawah Chondrodimuko. Menyajikan informasi teraktual, kajian, dan opini kader.',
+  description: 'Portal Berita Resmi Pergerakan Mahasiswa Islam Indonesia (PMII) Rayon "KAWAH" Chondrodimuko. Menyajikan informasi teraktual, kajian, dan opini kader.',
   keywords: ['PMII', 'Kawah Chondrodimuko', 'UIN Malang', 'Berita Mahasiswa', 'Karya Kader', 'Pergerakan Mahasiswa', 'Artikel PMII'],
   authors: [{ name: 'Redaksi Karya Kader' }],
-  metadataBase: new URL('https://karyakader.id'), // Ganti dengan domain aslimu nanti
+  metadataBase: new URL('https://karyakader.id'),
+  
+  verification: {
+    google: '4wTXqRwb4ZiJlKueNYdht0aBjlGSL32DBbLLjVn1Mv0',
+  },
   
   openGraph: {
     title: 'Karya Kader - PR. PMII "KAWAH" Chondrodimuko',
@@ -22,10 +26,10 @@ export const metadata: Metadata = {
     siteName: 'Karya Kader',
     images: [
       {
-        url: '/logo-pmii.png', // Pastikan kamu menaruh file logo-pmii.png di dalam folder "public"
+        url: '/logo-pmii.png',
         width: 1200,
         height: 630,
-        alt: 'Logo Karya Kader PMII',
+        alt: 'PMII',
       },
     ],
     locale: 'id_ID',
@@ -34,8 +38,8 @@ export const metadata: Metadata = {
   
   twitter: {
     card: 'summary_large_image',
-    title: 'Karya Kader - PR. PMII Kawah Chondrodimuko',
-    description: 'Portal Berita Resmi PR. PMII Kawah Chondrodimuko.',
+    title: 'Karya Kader - PR. PMII "KAWAH" Chondrodimuko',
+    description: 'Portal Berita Resmi PR. PMII "KAWAH" Chondrodimuko.',
     images: ['/logo-pmii.png'], // Sama seperti gambar OG
   },
   
