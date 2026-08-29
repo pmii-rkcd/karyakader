@@ -19,12 +19,35 @@ import 'swiper/css/effect-fade';
 import { CalendarDays, Compass, ExternalLink, Image as ImageIcon, Info, ChevronRight, Clock } from 'lucide-react';
 
 interface Agenda {
-  id: string; title: string; date: string; imageUrl: string; linkInfo: string;
+  id: string;
+  title: string;
+  date?: string;
+  hasTime?: boolean;
+  imageUrl?: string;
+  linkInfo?: string;
 }
 
 interface PosterData {
   url: string; link: string;
 }
+
+// Beranda hanya menampilkan agenda dalam rentang satu minggu terdekat.
+const BATAS_AGENDA_BERANDA_HARI = 7;
+
+// Menghasilkan waktu target yang aman untuk agenda lama maupun agenda baru.
+// Agenda tanpa jam tetap aktif sampai akhir hari pelaksanaannya.
+const getAgendaTargetTime = (agenda: Agenda) => {
+  if (!agenda.date) return null;
+
+  if (agenda.hasTime === false) {
+    const tanggalSaja = agenda.date.split('T')[0];
+    const akhirHari = new Date(`${tanggalSaja}T23:59:59`).getTime();
+    return Number.isNaN(akhirHari) ? null : akhirHari;
+  }
+
+  const waktuAgenda = new Date(agenda.date).getTime();
+  return Number.isNaN(waktuAgenda) ? null : waktuAgenda;
+};
 
 // === KOMPONEN HITUNG MUNDUR (Desain Modern) ===
 const CountdownTimer = ({ targetDate }: { targetDate: string }) => {
@@ -97,15 +120,21 @@ export default function Sidebar({ menuName }: { menuName: string }) {
         const querySnapshot = await getDocs(q);
         const fetchedAgendas = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Agenda));
         
-        const now = new Date().getTime();
+        const now = new Date();
+        const batasAgenda = new Date(now);
+        batasAgenda.setDate(batasAgenda.getDate() + BATAS_AGENDA_BERANDA_HARI);
+        batasAgenda.setHours(23, 59, 59, 999);
 
-        // Filter: HANYA ambil agenda yang target waktunya masih LEBIH BESAR dari waktu sekarang
+        // Hanya agenda yang belum lewat dan berlangsung maksimal 7 hari ke depan.
         const activeAgendas = fetchedAgendas.filter(a => {
-          const agendaTime = new Date(a.date).getTime();
-          return agendaTime > now;
+          const agendaTime = getAgendaTargetTime(a);
+          return (
+            agendaTime !== null &&
+            agendaTime > now.getTime() &&
+            agendaTime <= batasAgenda.getTime()
+          );
         });
-        
-        // Kita tidak perlu di-slice(0,3) lagi karena sekarang pakai Slider, bisa nampung banyak!
+
         setAgendas(activeAgendas); 
       } catch (error) {
         console.log("Gagal memuat agenda", error);
@@ -178,11 +207,19 @@ export default function Sidebar({ menuName }: { menuName: string }) {
                       <div className="flex justify-center items-center mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg py-1.5 mx-auto max-w-[80%]">
                         <span className="text-[10px] text-gray-600 dark:text-gray-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <CalendarDays className="w-3 h-3 text-yellow-500" />
-                          {new Date(agenda.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
+                          {new Date(agenda.date as string).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
                       
-                      <CountdownTimer targetDate={agenda.date} />
+                      {agenda.hasTime === false ? (
+                        <div className="mt-5 rounded-xl border border-yellow-200 dark:border-yellow-500/30 bg-yellow-50 dark:bg-yellow-500/10 px-4 py-3 text-center">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-yellow-700 dark:text-yellow-400">
+                            Waktu Pelaksanaan Menyesuaikan
+                          </p>
+                        </div>
+                      ) : (
+                        <CountdownTimer targetDate={agenda.date as string} />
+                      )}
                       
                       {agenda.linkInfo && agenda.linkInfo !== '#' && (
                         <a href={agenda.linkInfo} target="_blank" rel="noopener noreferrer" className="mt-6 flex justify-center items-center gap-2 w-full bg-yellow-500 dark:bg-yellow-500/90 text-[#0f2136] text-[11px] font-black uppercase tracking-widest py-3.5 rounded-xl hover:bg-yellow-400 hover:shadow-lg transition-all duration-300">

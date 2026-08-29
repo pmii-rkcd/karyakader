@@ -189,6 +189,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <li><Link href="/" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Beranda</Link></li>
               <li><Link href="/bararasa" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Bararasa</Link></li>
               <li><Link href="/kabar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Kabar Dari Kawah</Link></li>
+              <li><Link href="/peta-gerak" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Peta Gerak</Link></li>
               <li><Link href="/mutiara" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Mutiara Chondro</Link></li>
               <li><Link href="/nalar" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Nalar Tempaan</Link></li>
               <li><Link href="/tentang" className="hover:bg-white/10 hover:text-yellow-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md inline-block whitespace-nowrap">Tentang Kami</Link></li>
@@ -228,6 +229,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <li><Link href="/" className="hover:text-yellow-400 transition-colors">Beranda</Link></li>
               <li><Link href="/bararasa" className="hover:text-yellow-400 transition-colors">Bararasa</Link></li>
               <li><Link href="/kabar" className="hover:text-yellow-400 transition-colors">Kabar Dari Kawah</Link></li>
+              <li><Link href="/peta-gerak" className="hover:text-yellow-400 transition-colors">Peta Gerak</Link></li>
               <li><Link href="/mutiara" className="hover:text-yellow-400 transition-colors">Mutiara Chondro</Link></li>
               <li><Link href="/nalar" className="hover:text-yellow-400 transition-colors">Nalar Tempaan</Link></li>
               <li><Link href="/tentang" className="hover:text-yellow-400 transition-colors">Tentang Kami</Link></li>
