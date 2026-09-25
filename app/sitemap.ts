@@ -1,7 +1,10 @@
+import { isPublicArticle } from '@/lib/article-visibility';
 // app/sitemap.ts
 import { MetadataRoute } from 'next';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+
+export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ⚠️ Ganti dengan domain utama Mas Ahmad saat sudah online nanti
@@ -10,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     // 1. Ambil semua link Berita dari Firebase
     const articlesSnapshot = await getDocs(collection(db, 'articles'));
-    const articles = articlesSnapshot.docs.map((doc) => {
+    const articles = articlesSnapshot.docs.filter(item => isPublicArticle(item.data())).map((doc) => {
       const data = doc.data();
       const date = data.updatedAt?.toDate() || data.createdAt?.toDate() || new Date();
       return {

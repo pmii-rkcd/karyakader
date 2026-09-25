@@ -1,11 +1,13 @@
 // app/bararasa/page.tsx
 'use client';
+import { isPublicArticle } from '@/lib/article-visibility';
+import { getPublicArticleBatch } from '@/lib/public-article-batch';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, query, orderBy, where, limit, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import Sidebar from '../components/Sidebar'; 
 
 // 🚀 IMPORT LUCIDE ICONS
@@ -61,10 +63,10 @@ export default function KabarPage() {
           limit(BATCH_SIZE)
         );
 
-        const articlesSnap = await getDocs(articlesQuery);
+        const articlesSnap = await getPublicArticleBatch(articlesQuery);
         
         if (!articlesSnap.empty) {
-          setArticles(articlesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article)));
+          setArticles(articlesSnap.docs.filter(item => isPublicArticle(item.data())).map(doc => ({ id: doc.id, ...doc.data() } as Article)));
           setLastVisibleDoc(articlesSnap.docs[articlesSnap.docs.length - 1]);
           if (articlesSnap.docs.length < BATCH_SIZE) setHasMore(false);
         } else {
@@ -92,10 +94,10 @@ export default function KabarPage() {
         limit(BATCH_SIZE)
       );
 
-      const nextSnap = await getDocs(nextQuery);
+      const nextSnap = await getPublicArticleBatch(nextQuery);
 
       if (!nextSnap.empty) {
-        const newArticles = nextSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+        const newArticles = nextSnap.docs.filter(item => isPublicArticle(item.data())).map(doc => ({ id: doc.id, ...doc.data() } as Article));
         setArticles(prev => [...prev, ...newArticles]);
         setLastVisibleDoc(nextSnap.docs[nextSnap.docs.length - 1]);
         if (nextSnap.docs.length < BATCH_SIZE) setHasMore(false);
@@ -193,7 +195,7 @@ export default function KabarPage() {
           )}
 
           {/* TOMBOL LOAD MORE */}
-          {hasMore && articles.length > 0 && (
+          {hasMore && (
             <div className="mt-10 sm:mt-14 text-center">
               <button 
                 onClick={handleLoadMore} 

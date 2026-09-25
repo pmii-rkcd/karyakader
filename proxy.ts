@@ -1,8 +1,8 @@
-// middleware.ts
+// proxy.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
     // Jika path belum berawalan /penulis, maka kita "rewrite" secara internal ke folder /penulis
     // Contoh: penulis.karyakader.id/ -> diarahkan ke folder /penulis
     // Contoh: penulis.karyakader.id/ahmad -> diarahkan ke folder /penulis/ahmad
-    if (!url.pathname.startsWith('/penulis')) {
+    if (url.pathname !== '/penulis' && !url.pathname.startsWith('/penulis/')) {
       url.pathname = `/penulis${url.pathname}`;
       return NextResponse.rewrite(url);
     }
@@ -25,5 +25,5 @@ export function middleware(request: NextRequest) {
 
 // Konfigurasi ini agar middleware tidak mengganggu aset gambar, font, atau API
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api/|_next/|.*\\.[^/]+$).*)'],
 };

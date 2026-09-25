@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { useBrowserLocation, useMounted } from '@/lib/use-browser-location';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useTheme } from 'next-themes';
@@ -19,25 +20,19 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   
   // 🔥 DETEKSI HALAMAN PENULIS / SUB-DOMAIN 🔥
   const isPenulisPath = pathname?.startsWith('/penulis');
-  const [isPenulisDomain, setIsPenulisDomain] = useState(false);
+  const origin = useBrowserLocation();
+  const isPenulisDomain = origin ? new URL(origin).hostname.startsWith('penulis.') : false;
   
-  const [settings, setSettings] = useState<any>({});
-  const [aboutSettings, setAboutSettings] = useState<any>({});
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [aboutSettings, setAboutSettings] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
 
   useEffect(() => {
-    setMounted(true);
-    
-    // Cek apakah diakses dari sub-domain penulis.karyakader.id
-    if (typeof window !== 'undefined') {
-      setIsPenulisDomain(window.location.hostname.includes('penulis.'));
-    }
-
     if (isAdminPage) return;
     
     const fetchSettings = async () => {
@@ -46,7 +41,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       if (generalSnap.exists()) setSettings(generalSnap.data());
       if (aboutSnap.exists()) setAboutSettings(aboutSnap.data());
     };
-    fetchSettings();
+    fetchSettings().catch(error => console.error('Gagal memuat pengaturan:', error));
   }, [isAdminPage]);
 
   // Variabel untuk menyembunyikan menu kanal
@@ -84,7 +79,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <div className="bg-[#0f2136] dark:bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-8 flex flex-wrap justify-between items-center border-b border-gray-800 gap-2 transition-colors duration-500 relative z-[70]">
         <div className="flex items-center gap-2 font-medium tracking-wide">
           <Calendar className="w-3.5 h-3.5 text-yellow-500 hidden sm:block" />
-          <span>{currentDate}</span>
+          <span suppressHydrationWarning>{currentDate}</span>
         </div>
         
         <div className="flex items-center gap-4">
@@ -215,7 +210,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   <p className="text-[10px] text-yellow-500 uppercase font-bold tracking-widest">Portal Berita Resmi</p>
                 </div>
             </div>
-            <p className="italic text-sm border-l-2 border-gray-700 pl-3">"Dzikir, Fikir, Amal Sholeh"</p>
+            <p className="italic text-sm border-l-2 border-gray-700 pl-3">&quot;Dzikir, Fikir, Amal Sholeh&quot;</p>
             <div className="space-y-3 text-sm pt-2">
               <p className="flex items-start gap-3"><MapPin className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" /> <span className="leading-relaxed">{aboutSettings.address || 'Jl. Joyo Tamansari 1 No.41, Merjosari, Malang'}</span></p>
               <p className="flex items-center gap-3"><Mail className="w-4 h-4 text-yellow-500 shrink-0" /> {settings.email || 'pmiirkcd@gmail.com'}</p>
@@ -260,7 +255,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div className="bg-gray-800/50 p-5 rounded-xl border border-gray-700/50 flex-1 flex flex-col">
               <h4 className="text-white font-bold mb-2 shrink-0">Punya Tulisan?</h4>
               <p className="text-xs text-gray-400 mb-6 leading-relaxed flex-1">Kirimkan opini, puisi, atau liputan kegiatanmu ke redaksi kami untuk dipublikasikan.</p>
-              <a href={`https://wa.me/${settings.phone || '6285748203760'}`} target="_blank" className="w-full bg-yellow-500 text-[#0f2136] font-bold py-2.5 px-4 rounded-lg hover:bg-yellow-400 transition-colors flex justify-center items-center gap-2 text-sm text-center shrink-0">
+              <a href={`https://wa.me/${(settings.phone || '6285748203760').replace(/\D/g, '').replace(/^0/, '62')}`} target="_blank" className="w-full bg-yellow-500 text-[#0f2136] font-bold py-2.5 px-4 rounded-lg hover:bg-yellow-400 transition-colors flex justify-center items-center gap-2 text-sm text-center shrink-0">
                 Redaksi <Send className="w-4 h-4" />
               </a>
             </div>

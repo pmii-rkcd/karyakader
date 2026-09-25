@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
@@ -27,19 +27,22 @@ function cleanPath(value: unknown) {
 }
 
 function pageDocumentId(path: string) {
-  return Buffer.from(path).toString('base64url').slice(0, 200) || 'homepage';
+  const encoded = Buffer.from(path).toString('base64url');
+  return encoded.length <= 200 ? encoded : createHash('sha256').update(path).digest('hex');
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const path = cleanPath(body.path);
+    const path = cleanPath(body?.path);
 
     if (path.startsWith('/dashboard') || path.startsWith('/login') || path.startsWith('/api')) {
       return NextResponse.json({ recorded: false });
     }
 
-    const existingVisitorId = request.cookies.get(COOKIE_NAME)?.value;
+    const cookieValue = request.cookies.get(COOKIE_NAME)?.value;
+    const existingVisitorId = cookieValue && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cookieValue)
+      ? cookieValue : undefined;
     const visitorId = existingVisitorId || randomUUID();
     const today = getJakartaDate();
 
@@ -127,21 +130,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Akses ditolak.' }, { status: 401 });
     }
 
-const idToken = authorization.slice(7);
-const decodedToken = await adminAuth.verifyIdToken(idToken);
-
-// Memastikan akun benar-benar terdaftar sebagai admin
-const adminSnapshot = await adminDb
-  .collection('admins')
-  .doc(decodedToken.uid)
-  .get();
-
-if (!adminSnapshot.exists || adminSnapshot.data()?.role !== 'admin') {
-  return NextResponse.json(
-    { message: 'Akses admin diperlukan.' },
-    { status: 403 }
-  );
-}
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(authorization.slice(7), true);
+    } catch {
+      return NextResponse.json({ message: 'Sesi tidak valid. Silakan login kembali.' }, { status: 401 });
+    }
+    const adminSnapshot = await adminDb.collection('admins').doc(decodedToken.uid).get();
+    if (!adminSnapshot.exists || adminSnapshot.data()?.role !== 'admin') {
+      return NextResponse.json({ message: 'Akses admin diperlukan.' }, { status: 403 });
+    }
 
     const [summarySnapshot, dailySnapshot, pagesSnapshot] = await Promise.all([
       adminDb.collection('analytics_summary').doc('main').get(),

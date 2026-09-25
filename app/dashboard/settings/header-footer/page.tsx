@@ -1,5 +1,6 @@
 // app/dashboard/settings/header-footer/page.tsx
 'use client';
+import { uploadImageToCloudinary as uploadImage } from '@/lib/upload-image';
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
@@ -41,15 +42,6 @@ export default function HeaderFooterSettings() {
   }, [selectedMenu]);
 
   // Fungsi Upload ke Cloudinary
-  const uploadImage = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
-    formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
-    const data = await res.json();
-    return data.secure_url;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +61,7 @@ export default function HeaderFooterSettings() {
       
       alert(`Pengaturan untuk menu "${selectedMenu}" berhasil disimpan!`);
       setLogoFile(null); // Reset file input setelah sukses
-    } catch (error) {
+    } catch {
       alert('Gagal menyimpan pengaturan.');
     } finally {
       setIsSubmitting(false);

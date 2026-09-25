@@ -1,7 +1,8 @@
 // app/penulis/[slug]/ClientPage.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useBrowserLocation } from '@/lib/use-browser-location';
+import type { AuthorProfile, PortfolioArticle } from '@/lib/content-types';
 import Image from 'next/image';
 import Link from 'next/link';
 // 🚀 IMPORT LUCIDE ICONS
@@ -9,36 +10,23 @@ import { Instagram, Linkedin, ArrowLeft, Clock, Eye, FileText, PenTool } from 'l
 
 const stripHtmlAndTruncate = (htmlString: string, maxLength: number = 130) => {
   if (!htmlString) return '';
-  let text = htmlString.replace(/<\/?[^>]+(>|$)/g, " ").replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&ldquo;/g, '"').replace(/&rdquo;/g, '"').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
+  const text = htmlString.replace(/<\/?[^>]+(>|$)/g, " ").replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&ldquo;/g, '"').replace(/&rdquo;/g, '"').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
   if (text.length > maxLength) return text.substring(0, maxLength) + '...';
   return text;
 };
 
-const formatDate = (timestamp: any) => {
+const formatDate = (timestamp: PortfolioArticle['createdAt']) => {
   if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const date = new Date(timestamp.seconds * 1000);
   return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 // Menerima data yang sudah di-fetch oleh Server
-export default function DetailPenulisClient({ author, articles }: { author: any, articles: any[] }) {
+export default function DetailPenulisClient({ author, articles }: { author: AuthorProfile, articles: PortfolioArticle[] }) {
   
   // 🔥 RADAR DOMAIN: Deteksi apakah dibuka dari sub-domain 'penulis.'
-  const [mainDomainUrl, setMainDomainUrl] = useState('');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      // Jika mendeteksi sub-domain 'penulis.'
-      if (host.includes('penulis.')) {
-        const protocol = window.location.protocol;
-        const port = window.location.port ? `:${window.location.port}` : '';
-        // Coret kata 'penulis.' untuk mendapatkan domain utama (karyakader.id / localhost)
-        const mainHost = host.replace('penulis.', '');
-        setMainDomainUrl(`${protocol}//${mainHost}${port}`);
-      }
-    }
-  }, []);
+  const origin = useBrowserLocation();
+  const mainDomainUrl = origin && new URL(origin).hostname.startsWith('penulis.') ? origin.replace('//penulis.', '//') : '';
 
   return (
     <main className="max-w-[1300px] mx-auto px-4 md:px-8 py-8 md:py-12 min-h-screen w-full min-w-0">
@@ -54,7 +42,7 @@ export default function DetailPenulisClient({ author, articles }: { author: any,
           <div className="sticky top-32 bg-white dark:bg-[#0d1520] rounded-2xl border border-gray-100 dark:border-gray-800 p-8 text-center shadow-lg">
             <div className="relative w-40 h-40 mx-auto rounded-full border-[4px] border-yellow-500 overflow-hidden mb-6 shadow-md bg-gray-50">
               <Image 
-                src={author.imageUrl || 'https://via.placeholder.com/300?text=No+Photo'} 
+                src={author.imageUrl || '/icon.png'}
                 alt={author.name} 
                 fill 
                 className="object-cover"
@@ -70,7 +58,7 @@ export default function DetailPenulisClient({ author, articles }: { author: any,
             </p>
             
             <div className="text-gray-500 dark:text-gray-400 text-sm md:text-base leading-relaxed mb-8 text-left border-l-4 border-yellow-500 pl-4 italic">
-              "{author.bio}"
+              &quot;{author.bio}&quot;
             </div>
 
             <div className="border-t border-gray-100 dark:border-gray-800 pt-6 flex justify-center gap-4">

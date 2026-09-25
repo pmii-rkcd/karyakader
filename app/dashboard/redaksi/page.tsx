@@ -1,5 +1,6 @@
 // app/dashboard/redaksi/page.tsx
 'use client';
+import { uploadImageToCloudinary as uploadImage } from '@/lib/upload-image';
 
 import { useState, useEffect, useRef } from 'react';
 import { db } from '@/lib/firebase';
@@ -42,25 +43,6 @@ export default function RedaksiPage() {
     fetchMembers();
   }, []);
 
-  const uploadImage = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
-    formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string);
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: 'POST', body: formData
-    });
-    
-    const data = await res.json();
-    
-    // 🔥 PENDETEKSI ERROR CLOUDINARY
-    if (!data.secure_url) {
-      throw new Error(data.error?.message || "Cloudinary gagal mengembalikan URL gambar.");
-    }
-    
-    return data.secure_url;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,10 +73,10 @@ export default function RedaksiPage() {
       if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input file visual
       
       fetchMembers(); 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Gagal menambah redaksi:", error);
       // 🔥 ALERT ERROR SPESIFIK AGAR KITA TAHU PENYEBABNYA
-      alert(`❌ GAGAL: ${error.message || "Terjadi kesalahan saat menyimpan data."}`);
+      alert(`❌ GAGAL: ${error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan data."}`);
     } finally {
       setIsSubmitting(false);
     }

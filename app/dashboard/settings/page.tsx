@@ -1,5 +1,6 @@
 // app/dashboard/settings/page.tsx
 'use client';
+import { uploadImageToCloudinary as uploadPoster } from '@/lib/upload-image';
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
@@ -62,19 +63,6 @@ export default function SettingsPage() {
     fetchSettings();
   }, []);
 
-  const uploadPoster = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
-    formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string);
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-    const data = await res.json();
-    return data.secure_url;
-  };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();

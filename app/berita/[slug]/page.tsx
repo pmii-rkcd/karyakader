@@ -1,3 +1,4 @@
+import { isPublicArticle } from '@/lib/article-visibility';
 // app/berita/[slug]/page.tsx
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -12,16 +13,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const q = query(collection(db, 'articles'), where('slug', '==', slug));
     const querySnapshot = await getDocs(q);
 
-    if (querySnapshot.empty) {
+    if (!querySnapshot.docs.some(item => isPublicArticle(item.data()))) {
       return { title: 'Berita Tidak Ditemukan - Karyakader.id' };
     }
 
-    const article = querySnapshot.docs[0].data();
-    let plainText = article.content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
+    const article = querySnapshot.docs.find(item => isPublicArticle(item.data()))!.data();
+    const plainText = article.content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
     const shortDesc = plainText.substring(0, 150) + '...';
     
     // 🔥 SABUK PENGAMAN: Jika lupa kasih foto, pakai Logo PMII
-    const imageUrl = article.imageUrl || 'https://karyakader.id/logo-pmii.png';
+    const imageUrl = article.imageUrl || 'https://karyakader.id/icon.png';
 
     return {
       title: `${article.title} - Karyakader.id`,
@@ -42,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         images: [imageUrl],
       },
     };
-  } catch (error) {
+  } catch {
     return { title: 'Karyakader.id - Portal Berita Pergerakan' };
   }
 }
@@ -57,8 +58,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     const q = query(collection(db, 'articles'), where('slug', '==', slug));
     const querySnapshot = await getDocs(q);
 
-    if (!querySnapshot.empty) {
-      const article = querySnapshot.docs[0].data();
+    if (querySnapshot.docs.some(item => isPublicArticle(item.data()))) {
+      const article = querySnapshot.docs.find(item => isPublicArticle(item.data()))!.data();
       const datePublished = article.createdAt?.toDate().toISOString() || new Date().toISOString();
       const dateModified = article.updatedAt?.toDate().toISOString() || datePublished;
 
@@ -66,7 +67,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         '@context': 'https://schema.org',
         '@type': 'NewsArticle',
         headline: article.title,
-        image: [article.imageUrl || 'https://karyakader.id/logo-pmii.png'],
+        image: [article.imageUrl || 'https://karyakader.id/icon.png'],
         datePublished: datePublished,
         dateModified: dateModified,
         author: [{
@@ -79,7 +80,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           name: 'Karya Kader',
           logo: {
             '@type': 'ImageObject',
-            url: 'https://karyakader.id/logo-pmii.png' // Pastikan logo ini ada saat sudah online
+            url: 'https://karyakader.id/icon.png' // Pastikan logo ini ada saat sudah online
           }
         }
       };
@@ -93,7 +94,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       {jsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
         />
       )}
       {/* Memanggil ClientPage untuk tampilan UI-nya */}

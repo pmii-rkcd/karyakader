@@ -19,7 +19,7 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       // Jika berhasil, arahkan ke halaman dashboard
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch {
       setError('Gagal login. Periksa kembali email dan password Anda.');
     }
   };

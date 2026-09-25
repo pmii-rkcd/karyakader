@@ -1,25 +1,30 @@
 // app/berita/[slug]/ClientPage.tsx
 'use client';
+import type { ArticleDate } from '@/lib/content-types';
+import { isPublicArticle } from '@/lib/article-visibility';
 
 import { useEffect, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, increment, addDoc, serverTimestamp, limit } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
+import ShareButton from '../../components/ShareButton';
+import ArticleQrButton from '../../components/ArticleQrButton';
 
 // 🚀 IMPORT LUCIDE ICONS
-import { Loader2, ChevronRight, User, CalendarDays, Share2, Send, MessageSquare } from 'lucide-react';
+import { Loader2, ChevronRight, User, CalendarDays, Send, MessageSquare } from 'lucide-react';
 
 interface Article {
   id: string; title: string; content: string; category: string; imageUrl: string;
-  authorEmail: string; createdAt: any; slug: string; dateline?: string; tags?: string[];
+  authorEmail: string; createdAt: ArticleDate; slug: string; dateline?: string; tags?: string[];
   views?: number; commentCount?: number;
   kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; fotoUrl?: string; };
 }
 
-interface Comment { id: string; name: string; text: string; createdAt: any; articleId?: string; }
+interface Comment { id: string; name: string; text: string; createdAt: ArticleDate; articleId?: string; }
 
 const getShareUrl = (platform: string, title: string, currentUrl: string) => {
   const t = encodeURIComponent(title);
@@ -47,41 +52,34 @@ export default function DetailBerita() {
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  const [mainDomainUrl, setMainDomainUrl] = useState('');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (host.includes('penulis.')) {
-        const protocol = window.location.protocol;
-        const port = window.location.port ? `:${window.location.port}` : '';
-        const mainHost = host.replace('penulis.', '');
-        setMainDomainUrl(`${protocol}//${mainHost}${port}`);
-      }
-    }
-  }, []);
-
   useEffect(() => {
     const fetchArticleAndComments = async () => {
       if (!slug) return;
+      setIsLoading(true);
+      setArticle(null);
+      setComments([]);
+      setRelatedArticles([]);
+      setAuthorProfileId(null);
 
       try {
         const q = query(collection(db, 'articles'), where('slug', '==', slug));
         const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-          const docData = querySnapshot.docs[0];
+        if (querySnapshot.docs.some(item => isPublicArticle(item.data()))) {
+          const docData = querySnapshot.docs.find(item => isPublicArticle(item.data()))!;
           const articleData = docData.data() as Article;
           
           const articleRef = doc(db, 'articles', docData.id);
-          const hasViewed = sessionStorage.getItem(`viewed_${docData.id}`);
-
-          if (!hasViewed) {
-            await updateDoc(articleRef, { views: increment(1) });
-            setArticle({ ...articleData, id: docData.id, views: (articleData.views || 0) + 1 });
-            sessionStorage.setItem(`viewed_${docData.id}`, 'true');
-          } else {
-            setArticle({ ...articleData, id: docData.id, views: articleData.views || 0 });
+          setArticle({ ...articleData, id: docData.id, views: articleData.views || 0 });
+          try {
+            const hasViewed = sessionStorage.getItem(`viewed_${docData.id}`);
+            if (!hasViewed) {
+              await updateDoc(articleRef, { views: increment(1) });
+              setArticle({ ...articleData, id: docData.id, views: (articleData.views || 0) + 1 });
+              sessionStorage.setItem(`viewed_${docData.id}`, 'true');
+            }
+          } catch (error) {
+            console.error('Gagal mencatat jumlah pembaca:', error);
           }
 
           if (articleData.kredit?.penulis && articleData.kredit.penulis !== 'Redaksi') {
@@ -109,7 +107,7 @@ export default function DetailBerita() {
 
           try {
             const relatedSnap = await getDocs(query(collection(db, 'articles'), where('category', '==', articleData.category), where('slug', '!=', slug), limit(3)));
-            setRelatedArticles(relatedSnap.docs.map(c => ({ id: c.id, ...c.data() })) as Article[]);
+            setRelatedArticles(relatedSnap.docs.filter(item => isPublicArticle(item.data())).map(c => ({ id: c.id, ...c.data() })) as Article[]);
           } catch (err) {
             console.error("Gagal mengambil berita terkait:", err);
           }
@@ -143,9 +141,12 @@ export default function DetailBerita() {
       
       const docRef = await addDoc(collection(db, 'comments'), newComment);
       
-      await updateDoc(doc(db, 'articles', article.id), { 
-        commentCount: increment(1) 
-      });
+      try {
+        await updateDoc(doc(db, 'articles', article.id), { commentCount: increment(1) });
+      } catch (error) {
+        // The comment has already been saved; do not invite a duplicate submission.
+        console.error('Komentar tersimpan, tetapi jumlah komentar gagal diperbarui:', error);
+      }
       
       setComments([{ 
         id: docRef.id, 
@@ -161,7 +162,7 @@ export default function DetailBerita() {
       
     } catch (error) { 
       console.error("Error kirim komentar:", error);
-      alert("Gagal kirim. Pastikan Firebase Rules sudah diatur ke 'allow read, write: if true;'"); 
+      alert('Komentar belum berhasil dikirim. Silakan coba lagi.');
     } finally { 
       setIsSubmittingComment(false); 
     }
@@ -204,6 +205,8 @@ export default function DetailBerita() {
     }
   }
 
+  displayContent = DOMPurify.sanitize(displayContent, { USE_PROFILES: { html: true } });
+
   return (
     <main className="min-h-screen bg-white dark:bg-[#0a0f18] pb-16 pt-10 overflow-x-hidden transition-colors duration-500 font-sans">
       
@@ -244,7 +247,8 @@ export default function DetailBerita() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <Share2 className="w-4 h-4 text-gray-400 mr-1 hidden sm:block" />
+                <ArticleQrButton title={article.title} slug={article.slug || slug} />
+                <ShareButton title={article.title} url={currentUrl} />
                 <a href={getShareUrl('wa', article.title, currentUrl)} target="_blank" title="Bagikan ke WhatsApp" className="bg-[#25D366]/10 text-[#25D366] p-2.5 rounded-full hover:bg-[#25D366] hover:text-white transition">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 </a>

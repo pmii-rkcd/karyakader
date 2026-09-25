@@ -3,7 +3,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, query } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -105,7 +105,7 @@ function PenulisContent() {
         {/* Sembunyikan deskripsi jika sedang mencari */}
         {!searchQuery && (
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-            Mengenal lebih dekat para pemikir, kreator, dan penggerak literasi di balik setiap karya dan narasi PMII "Kawah" Chondrodimuko.
+            Mengenal lebih dekat para pemikir, kreator, dan penggerak literasi di balik setiap karya dan narasi PMII &quot;Kawah&quot; Chondrodimuko.
           </motion.p>
         )}
       </div>
@@ -140,7 +140,7 @@ function PenulisContent() {
                 {/* Foto Profil */}
                 <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-[#0d1520] overflow-hidden shadow-md z-10 mt-6 mb-4 group-hover:scale-105 transition-transform duration-500 bg-gray-100">
                   <Image 
-                    src={author.imageUrl || 'https://via.placeholder.com/300?text=No+Photo'} 
+                    src={author.imageUrl || '/icon.png'}
                     alt={author.name} 
                     fill 
                     className="object-cover"

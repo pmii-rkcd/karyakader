@@ -17,19 +17,16 @@ export default function VisitorTracker() {
     if (lastTrackedPath.current === pathname) return;
     lastTrackedPath.current = pathname;
 
-    const controller = new AbortController();
-
     fetch('/api/visitor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path: pathname }),
       keepalive: true,
-      signal: controller.signal,
     }).catch(() => {
       // Kegagalan statistik tidak boleh mengganggu tampilan website.
     });
 
-    return () => controller.abort();
+    // Keep the request alive across route changes and Strict Mode effect cleanup.
   }, [pathname]);
 
   return null;

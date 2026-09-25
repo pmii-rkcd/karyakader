@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     siteName: 'Karya Kader',
     images: [
       {
-        url: '/logo-pmii.png',
+        url: '/icon.png',
         width: 1200,
         height: 630,
         alt: 'PMII',
@@ -40,14 +40,13 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Karya Kader - PR. PMII "KAWAH" Chondrodimuko',
     description: 'Portal Berita Resmi PR. PMII "KAWAH" Chondrodimuko.',
-    images: ['/logo-pmii.png'], // Sama seperti gambar OG
+    images: ['/icon.png'], // Sama seperti gambar OG
   },
   
   // 🔥 PERBAIKAN IKON GLOBE: Memaksa Next.js membaca icon.png 🔥
   icons: {
     icon: [
-      { url: '/icon.png', type: 'image/png' },
-      { url: '/favicon.ico' } // Cadangan
+      { url: '/icon.png', type: 'image/png' }
     ],
     apple: [
       { url: '/icon.png' } // Agar logonya juga muncul jika di-save ke Homescreen iPhone

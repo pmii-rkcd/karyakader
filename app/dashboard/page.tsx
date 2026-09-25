@@ -1,9 +1,12 @@
 // app/dashboard/page.tsx
 'use client';
+import type { ArticleDate } from '@/lib/content-types';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { createImageUploader } from '@/lib/quill-image-uploader';
+import { uploadImageToCloudinary } from '@/lib/upload-image';
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, query, orderBy, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, setDoc, serverTimestamp, getDocs, query, orderBy, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css'; 
 
@@ -13,8 +16,8 @@ import { PenSquare, LayoutList, Trash2, Edit, Loader2, Plus, Image as ImageIcon 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 interface Article {
-  id: string; title: string; category: string; status: string; createdAt: any; 
-  dateline?: string; content: string; imageUrl: string; tags: string[];
+  id: string; title: string; category: string; status: string; createdAt: ArticleDate;
+  slug?: string; dateline?: string; content: string; imageUrl: string; tags: string[];
   kredit?: { penulis: string; fotoPenulis: string; editor: string; fotoEditor: string; fotografer: string; fotoFotografer: string; sumber: string; fotoSumber: string; };
 }
 
@@ -24,6 +27,7 @@ export default function DashboardPage() {
   const [articlesList, setArticlesList] = useState<Article[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSlug, setEditingSlug] = useState('');
 
   // === STATE FORM BERITA ===
   const [title, setTitle] = useState('');
@@ -53,6 +57,9 @@ export default function DashboardPage() {
   
   const [tags, setTags] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingContentImage, setIsUploadingContentImage] = useState(false);
+  const [contentImageError, setContentImageError] = useState('');
+  const contentImageUploadPending = useRef(false);
 
   const modules = useMemo(() => ({
     toolbar: [
@@ -62,6 +69,12 @@ export default function DashboardPage() {
       ['link', 'image', 'blockquote'],
       ['clean']
     ],
+    uploader: createImageUploader({
+      pending: contentImageUploadPending,
+      upload: uploadImageToCloudinary,
+      onStatus: setIsUploadingContentImage,
+      onError: setContentImageError,
+    }),
   }), []);
 
   // === FUNGSI AMBIL DAFTAR BERITA ===
@@ -90,7 +103,7 @@ export default function DashboardPage() {
         await deleteDoc(doc(db, 'articles', id));
         alert('Berita berhasil dihapus!');
         fetchArticles(); 
-      } catch (error) {
+      } catch {
         alert('Gagal menghapus berita.');
       }
     }
@@ -98,7 +111,11 @@ export default function DashboardPage() {
 
   // === FUNGSI EDIT BERITA ===
   const handleEdit = (article: Article) => {
+    if (contentImageUploadPending.current || isSubmitting) return;
+    setImage(null); setFotoPenulis(null); setFotoEditor(null); setFotoFotografer(null); setFotoSumber(null);
+    setContentImageError('');
     setEditingId(article.id);
+    setEditingSlug(article.slug || '');
     setTitle(article.title); setDateline(article.dateline || ''); setCategory(article.category); setStatus(article.status || 'Langsung Terbit');
     setContent(article.content); setTags(article.tags ? article.tags.join(', ') : ''); setCurrentImageUrl(article.imageUrl || '');
     setPenulis(article.kredit?.penulis || ''); setCurrentFotoPenulis(article.kredit?.fotoPenulis || '');
@@ -112,6 +129,9 @@ export default function DashboardPage() {
 
   // === FUNGSI BATAL EDIT (Reset Form) ===
   const resetForm = () => {
+    if (contentImageUploadPending.current) return;
+    setEditingSlug('');
+    setContentImageError('');
     setEditingId(null);
     setTitle(''); setDateline(''); setCategory('Kabar Dari Kawah'); setStatus('Langsung Terbit');
     setImage(null); setCurrentImageUrl(''); setContent(''); setTags('');
@@ -121,22 +141,10 @@ export default function DashboardPage() {
     setSumber(''); setFotoSumber(null); setCurrentFotoSumber('');
   };
 
-  // === FUNGSI UPLOAD CLOUDINARY ===
-  const uploadImageToCloudinary = async (file: File | null) => {
-    if (!file) return ''; 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string);
-    formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string);
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
-    const data = await res.json();
-    return data.secure_url;
-  };
-
   // === FUNGSI SUBMIT (Create & Update) ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (contentImageUploadPending.current || isSubmitting) return;
     if (!title || !content || content === '<p><br></p>' || (!image && !currentImageUrl)) {
       alert('Harap isi Judul, Gambar Sampul, dan Isi Berita!');
       return;
@@ -148,7 +156,9 @@ export default function DashboardPage() {
         uploadImageToCloudinary(image), uploadImageToCloudinary(fotoPenulis), uploadImageToCloudinary(fotoEditor), uploadImageToCloudinary(fotoFotografer), uploadImageToCloudinary(fotoSumber)
       ]);
 
-      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const newArticleRef = editingId ? null : doc(collection(db, 'articles'));
+      const titleSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || 'berita';
+      const slug = editingSlug || `${titleSlug}-${editingId || newArticleRef!.id}`;
       const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [];
 
       const articleData = {
@@ -161,8 +171,6 @@ export default function DashboardPage() {
           sumber: sumber || '-', fotoSumber: newFotoSumber || currentFotoSumber || ""
         },
         tags: tagsArray,
-        authorId: auth.currentUser?.uid || 'Unknown',
-        authorEmail: auth.currentUser?.email || 'Unknown',
         published: status === 'Langsung Terbit'
       };
 
@@ -170,8 +178,12 @@ export default function DashboardPage() {
         await updateDoc(doc(db, 'articles', editingId), { ...articleData, updatedAt: serverTimestamp() });
         alert('Berita berhasil diperbarui!');
       } else {
-        await addDoc(collection(db, 'articles'), { ...articleData, createdAt: serverTimestamp() });
-        alert('Berita baru berhasil dipublikasikan!');
+        await setDoc(newArticleRef!, {
+          ...articleData, createdAt: serverTimestamp(),
+          authorId: auth.currentUser?.uid || 'Unknown',
+          authorEmail: auth.currentUser?.email || 'Unknown',
+        });
+        alert(status === 'Draft' ? 'Draft berhasil disimpan!' : 'Berita baru berhasil dipublikasikan!');
       }
       
       resetForm(); setActiveTab('kelola');
@@ -192,6 +204,7 @@ export default function DashboardPage() {
         
         <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 w-max overflow-x-auto max-w-full">
           <button 
+            disabled={isUploadingContentImage || isSubmitting}
             onClick={() => { setActiveTab('kelola'); resetForm(); }}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'kelola' ? 'bg-[#0f2136] text-white shadow-md' : 'text-gray-500 hover:text-[#0f2136] hover:bg-gray-100'}`}
           >
@@ -290,7 +303,7 @@ export default function DashboardPage() {
                   <p className="text-blue-700 text-xs md:text-sm mt-1">Perubahan yang kamu simpan akan menimpa berita yang sudah ada.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => { setActiveTab('kelola'); resetForm(); }} className="w-full md:w-auto text-xs bg-white border border-blue-300 px-4 py-2 rounded-lg text-blue-800 font-bold hover:bg-blue-100 transition shadow-sm">
+              <button type="button" disabled={isUploadingContentImage || isSubmitting} onClick={() => { setActiveTab('kelola'); resetForm(); }} className="w-full md:w-auto text-xs bg-white border border-blue-300 px-4 py-2 rounded-lg text-blue-800 font-bold hover:bg-blue-100 transition shadow-sm">
                 ✕ Batalkan Edit
               </button>
             </div>
@@ -368,7 +381,11 @@ export default function DashboardPage() {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <label className="block text-sm font-bold text-[#0f2136] mb-3">Teks & Isi Berita</label>
             <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
-              <ReactQuill theme="snow" value={content} onChange={setContent} modules={modules} className="h-[400px] md:h-[500px] mb-12 bg-white" />
+              <ReactQuill readOnly={isSubmitting} theme="snow" value={content} onChange={setContent} modules={modules} className="h-[400px] md:h-[500px] mb-12 bg-white" />
+              <p role="status" className="text-sm text-gray-600">
+                {isUploadingContentImage ? 'Sedang mengunggah foto, mohon tunggu...' : 'Klik ikon gambar untuk menyisipkan foto PNG, JPG, WebP, atau GIF. Setelah selesai, simpan berita.'}
+              </p>
+              {contentImageError && <p role="alert" className="mt-2 text-sm text-red-600">{contentImageError}</p>}
             </div>
           </div>
 
@@ -428,9 +445,9 @@ export default function DashboardPage() {
 
           {/* TOMBOL TERBITKAN / UPDATE */}
           <div className="pt-6">
-            <button type="submit" disabled={isSubmitting} className={`w-full py-5 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all duration-300 text-sm md:text-base flex justify-center items-center gap-3 ${isSubmitting ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#0f2136] hover:bg-yellow-500 hover:text-[#0f2136] hover:-translate-y-1 hover:shadow-2xl'}`}>
+            <button type="submit" disabled={isSubmitting || isUploadingContentImage} className={`w-full py-5 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all duration-300 text-sm md:text-base flex justify-center items-center gap-3 ${isSubmitting || isUploadingContentImage ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#0f2136] hover:bg-yellow-500 hover:text-[#0f2136] hover:-translate-y-1 hover:shadow-2xl'}`}>
               {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : editingId ? <Edit className="w-6 h-6" /> : <PenSquare className="w-6 h-6" />} 
-              {isSubmitting ? 'Sedang Memproses Server...' : editingId ? 'Simpan Perubahan Berita' : 'Terbitkan Berita Sekarang'}
+              {isSubmitting ? 'Sedang Memproses Server...' : editingId ? 'Simpan Perubahan Berita' : status === 'Draft' ? 'Simpan Draft' : 'Terbitkan Berita Sekarang'}
             </button>
           </div>
 

@@ -31,7 +31,9 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarPath, setSidebarPath] = useState<string | null>(null);
+  const isSidebarOpen = sidebarPath === pathname;
+  const setIsSidebarOpen = (open: boolean) => setSidebarPath(open ? pathname : null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
 
   // Memeriksa apakah pengguna login dan terdaftar sebagai admin
@@ -51,7 +53,7 @@ export default function DashboardLayout({
         const adminReference = doc(db, 'admins', user.uid);
         const adminSnapshot = await getDoc(adminReference);
 
-        if (!adminSnapshot.exists()) {
+        if (!adminSnapshot.exists() || adminSnapshot.data()?.role !== 'admin') {
           await signOut(auth);
 
           if (isActive) {
@@ -80,11 +82,6 @@ export default function DashboardLayout({
       unsubscribe();
     };
   }, [router]);
-
-  // Tutup sidebar setiap berpindah halaman
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [pathname]);
 
   const handleLogout = async () => {
     if (window.confirm('Yakin ingin keluar dari panel admin?')) {

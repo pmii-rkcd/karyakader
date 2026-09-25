@@ -1,5 +1,6 @@
 // app/dashboard/agenda/page.tsx
 'use client';
+import { uploadImageToCloudinary as uploadImage } from '@/lib/upload-image';
 
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '@/lib/firebase';
@@ -132,30 +133,6 @@ export default function AgendaPage() {
     fetchAgendas();
   }, []);
 
-  const uploadImage = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append(
-      'upload_preset',
-      process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string
-    );
-    formData.append(
-      'cloud_name',
-      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME as string
-    );
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      { method: 'POST', body: formData }
-    );
-    const data = await response.json();
-
-    if (!response.ok || !data.secure_url) {
-      throw new Error('Gagal mengunggah poster ke Cloudinary.');
-    }
-
-    return data.secure_url as string;
-  };
 
   const resetForm = () => {
     setTitle('');

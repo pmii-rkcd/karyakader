@@ -33,7 +33,7 @@ export default function TentangSettingsPage() {
         description, visi, misi, address, mapUrl, updatedAt: new Date()
       }, { merge: true });
       alert('Halaman Tentang Kami berhasil diperbarui!');
-    } catch (error) {
+    } catch {
       alert('Gagal menyimpan.');
     } finally {
       setIsSubmitting(false);

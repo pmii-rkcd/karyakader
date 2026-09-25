@@ -1,5 +1,6 @@
 // app/search/page.tsx
 'use client';
+import { isPublicArticle } from '@/lib/article-visibility';
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -54,7 +55,7 @@ function SearchContent() {
       try {
         const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        const allArticles = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+        const allArticles = querySnapshot.docs.filter(item => isPublicArticle(item.data())).map(doc => ({ id: doc.id, ...doc.data() } as Article));
 
         const filtered = allArticles.filter(article => 
           article.title.toLowerCase().includes(keyword.toLowerCase()) || 
@@ -95,7 +96,7 @@ function SearchContent() {
       <div className="w-full lg:w-2/3 min-w-0 max-w-full">
         <div className="bg-white dark:bg-[#0d1520] border-b-[3px] border-yellow-500 p-5 sm:p-6 rounded-xl shadow-sm mb-6 sm:mb-8 transition-colors duration-500">
           <h2 className="text-lg sm:text-xl md:text-2xl font-serif text-[#0f2136] dark:text-white break-words">
-            Hasil pencarian untuk: <span className="font-bold font-sans italic text-yellow-600 dark:text-yellow-500">"{keyword}"</span>
+            Hasil pencarian untuk: <span className="font-bold font-sans italic text-yellow-600 dark:text-yellow-500">&quot;{keyword}&quot;</span>
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium">Ditemukan {articles.length} berita terkait.</p>
         </div>

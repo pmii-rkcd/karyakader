@@ -1,19 +1,22 @@
 // app/page.tsx
 'use client';
+import type { ArticleDate } from '@/lib/content-types';
+import { isPublicArticle } from '@/lib/article-visibility';
+import { getPublicArticleBatch } from '@/lib/public-article-batch';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 // 🚀 IMPORT LUCIDE ICONS
-import { User, Eye, MessageSquare, ArrowRight, Loader2, Clock } from 'lucide-react';
+import { User, Eye, MessageSquare, Loader2, Clock } from 'lucide-react';
 
 interface Article {
   id: string; title: string; slug: string; content: string; category: string; imageUrl: string;
-  authorEmail: string; createdAt: any; views?: number; commentCount?: number;
+  authorEmail: string; createdAt: ArticleDate; views?: number; commentCount?: number;
   kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; };
   tags?: string[];
 }
@@ -27,9 +30,9 @@ const stripHtmlAndTruncate = (htmlString: string, maxLength: number = 130) => {
 };
 
 // Fungsi helper untuk memformat waktu/tanggal
-const formatDate = (timestamp: any) => {
+const formatDate = (timestamp: ArticleDate) => {
   if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
   return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 };
 
@@ -48,8 +51,8 @@ export default function HomePage() {
     const fetchArticles = async () => {
       try {
         const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'), limit(30));
-        const articlesSnapshot = await getDocs(articlesQuery);
-        const fetchedArticles = articlesSnapshot.docs.map((doc) => ({
+        const articlesSnapshot = await getPublicArticleBatch(articlesQuery);
+        const fetchedArticles = articlesSnapshot.docs.filter(item => isPublicArticle(item.data())).map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Article[];

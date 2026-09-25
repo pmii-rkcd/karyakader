@@ -139,7 +139,7 @@ export default function ManajemenPenulisPage() {
         bio,
         instagram,
         linkedin,
-        imageUrl: uploadedImageUrl || 'https://via.placeholder.com/300?text=No+Photo',
+        imageUrl: uploadedImageUrl || '/icon.png',
         updatedAt: serverTimestamp()
       };
 
@@ -199,7 +199,7 @@ export default function ManajemenPenulisPage() {
           </div>
         ) : authors.length === 0 ? (
           <div className="p-12 text-center text-gray-500 font-medium">
-            Belum ada penulis yang ditambahkan. Silakan klik "Tambah Penulis".
+            Belum ada penulis yang ditambahkan. Silakan klik &quot;Tambah Penulis&quot;.
           </div>
         ) : (
           <div className="overflow-x-auto">
