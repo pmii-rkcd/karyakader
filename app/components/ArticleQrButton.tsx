@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Download, Loader2, QrCode, X } from 'lucide-react';
-import { createArticleQr, getPublicArticleUrl } from '@/lib/article-qr';
+import { createBrandedArticleQr, getPublicArticleUrl } from '@/lib/article-qr';
 
 function ArticleQrDialog({ title, slug, onClose }: { title: string; slug: string; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -16,7 +16,7 @@ function ArticleQrDialog({ title, slug, onClose }: { title: string; slug: string
     const element = dialog.current;
     element?.showModal();
     let active = true;
-    createArticleQr(slug).then(dataUrl => {
+    createBrandedArticleQr(slug).then(dataUrl => {
       if (active) setImage(dataUrl);
     }).catch(() => {
       if (active) setError(true);
