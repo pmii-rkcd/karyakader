@@ -23,9 +23,15 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
+      const inventoryData = await inventoryLogin.json().catch(() => ({} as { message?: string }));
 
       if (inventoryLogin.ok) {
         router.push('/admin-inventaris');
+        return;
+      }
+
+      if (inventoryLogin.status === 503) {
+        setError(inventoryData.message || 'Sandi inventaris belum dikonfigurasi di server online.');
         return;
       }
 
