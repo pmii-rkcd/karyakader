@@ -68,6 +68,8 @@ test('draft flags are hidden and legacy published articles remain visible', () =
   assert.equal(isPublicArticle({ published: false }), false);
   assert.equal(isPublicArticle({ status: 'Draft', published: true }), false);
   assert.equal(isPublicArticle({ status: 'Langsung Terbit', published: true }), true);
+  assert.equal(isPublicArticle({ status: 'Terjadwal', published: false, publishAt: { seconds: 1798765200 } }, new Date('2026-12-31T23:00:00Z')), false);
+  assert.equal(isPublicArticle({ status: 'Terjadwal', published: false, publishAt: { seconds: 1798765200 } }, new Date('2027-01-01T01:00:00Z')), true);
   assert.equal(isPublicArticle({}), true);
 });
 

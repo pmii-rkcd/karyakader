@@ -95,7 +95,7 @@ export default function DashboardLayout({
     }
   };
 
-  const navItems = [
+  const mainNavItems = [
     {
       name: 'Manajemen Berita',
       path: '/dashboard',
@@ -205,7 +205,7 @@ export default function DashboardLayout({
             Menu Utama
           </p>
 
-          {navItems.map((item) => {
+          {mainNavItems.map((item) => {
             const isActive =
               pathname === item.path ||
               (item.path !== '/dashboard' &&
@@ -233,6 +233,7 @@ export default function DashboardLayout({
               </Link>
             );
           })}
+
         </nav>
 
         <div className="p-4 border-t border-gray-800 space-y-2 bg-[#0a1727] shrink-0">

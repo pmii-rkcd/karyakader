@@ -13,18 +13,49 @@ import ThemeProvider from './components/ThemeProvider';
 // 🚀 IMPORT LUCIDE ICONS
 import { Calendar, Search, Sun, Moon, MapPin, Mail, Phone, Instagram, Youtube, Linkedin, Send } from 'lucide-react';
 
+type SiteSettingsCache = {
+  settings: Record<string, string>;
+  aboutSettings: Record<string, string>;
+  savedAt: number;
+};
+
+const SITE_SETTINGS_CACHE_KEY = 'karyakader.site-settings.v1';
+const SITE_SETTINGS_CACHE_TTL = 5 * 60 * 1000;
+
+const readCachedSiteSettings = (): SiteSettingsCache | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(SITE_SETTINGS_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as SiteSettingsCache;
+    if (!cached.savedAt || Date.now() - cached.savedAt > SITE_SETTINGS_CACHE_TTL) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedSiteSettings = (settings: Record<string, string>, aboutSettings: Record<string, string>) => {
+  try {
+    window.sessionStorage.setItem(SITE_SETTINGS_CACHE_KEY, JSON.stringify({ settings, aboutSettings, savedAt: Date.now() }));
+  } catch {
+    // Cache hanya untuk mempercepat tampilan. Jika gagal, website tetap berjalan.
+  }
+};
+
+
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter(); 
-  const isAdminPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/login');
+  const isAdminPage = pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin-inventaris') || pathname?.startsWith('/login');
   
   // 🔥 DETEKSI HALAMAN PENULIS / SUB-DOMAIN 🔥
   const isPenulisPath = pathname?.startsWith('/penulis');
   const origin = useBrowserLocation();
   const isPenulisDomain = origin ? new URL(origin).hostname.startsWith('penulis.') : false;
   
-  const [settings, setSettings] = useState<Record<string, string>>({});
-  const [aboutSettings, setAboutSettings] = useState<Record<string, string>>({});
+  const [settings, setSettings] = useState<Record<string, string>>(() => readCachedSiteSettings()?.settings ?? {});
+  const [aboutSettings, setAboutSettings] = useState<Record<string, string>>(() => readCachedSiteSettings()?.aboutSettings ?? {});
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -34,14 +65,23 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isAdminPage) return;
-    
+
+    let active = true;
+
     const fetchSettings = async () => {
-      const generalSnap = await getDoc(doc(db, 'settings', 'general'));
-      const aboutSnap = await getDoc(doc(db, 'settings', 'about'));
-      if (generalSnap.exists()) setSettings(generalSnap.data());
-      if (aboutSnap.exists()) setAboutSettings(aboutSnap.data());
+      const [generalSnap, aboutSnap] = await Promise.all([
+        getDoc(doc(db, 'settings', 'general')),
+        getDoc(doc(db, 'settings', 'about')),
+      ]);
+      if (!active) return;
+      const nextSettings = generalSnap.exists() ? generalSnap.data() as Record<string, string> : {};
+      const nextAboutSettings = aboutSnap.exists() ? aboutSnap.data() as Record<string, string> : {};
+      setSettings(nextSettings);
+      setAboutSettings(nextAboutSettings);
+      writeCachedSiteSettings(nextSettings, nextAboutSettings);
     };
     fetchSettings().catch(error => console.error('Gagal memuat pengaturan:', error));
+    return () => { active = false; };
   }, [isAdminPage]);
 
   // Variabel untuk menyembunyikan menu kanal
@@ -215,6 +255,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <p className="flex items-start gap-3"><MapPin className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" /> <span className="leading-relaxed">{aboutSettings.address || 'Jl. Joyo Tamansari 1 No.41, Merjosari, Malang'}</span></p>
               <p className="flex items-center gap-3"><Mail className="w-4 h-4 text-yellow-500 shrink-0" /> {settings.email || 'pmiirkcd@gmail.com'}</p>
               <p className="flex items-center gap-3"><Phone className="w-4 h-4 text-yellow-500 shrink-0" /> {settings.phone || '+62 857-4820-3760'}</p>
+              <Link href="/inventaris" className="inline-flex w-max items-center gap-2 rounded-lg border border-yellow-500 px-4 py-2 text-xs font-black uppercase tracking-widest text-yellow-500 transition-colors hover:bg-yellow-500 hover:text-[#0f2136]">Inventaris</Link>
             </div>
           </div>
 

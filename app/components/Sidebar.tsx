@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc, where, limit } from 'firebase/firestore';
 
 // Import Swiper untuk Slider (Dipakai untuk Poster & Agenda)
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -102,30 +102,38 @@ export default function Sidebar({ menuName }: { menuName: string }) {
   const [posters, setPosters] = useState<PosterData[]>([]);
 
   useEffect(() => {
+    let active = true;
     const fetchSidebarData = async () => {
-      // 1. Ambil Data Poster (Sama seperti sebelumnya)
-      const generalSnap = await getDoc(doc(db, 'settings', 'general'));
-      if (generalSnap.exists()) {
-        const data = generalSnap.data();
-        if (data.posters && data.posters.length > 0) {
-          setPosters(data.posters);
-        } else if (data.posterUrl) { 
-          setPosters([{ url: data.posterUrl, link: data.posterLink || '#' }]);
-        }
-      }
+      const now = new Date();
+      const batasAgenda = new Date(now);
+      batasAgenda.setDate(batasAgenda.getDate() + BATAS_AGENDA_BERANDA_HARI);
+      batasAgenda.setHours(23, 59, 59, 999);
 
-      // 2. Ambil Data Agenda Terdekat (DIPERBARUI DENGAN LOGIKA AUTO-HIDE)
       try {
-        const q = query(collection(db, 'agendas'), orderBy('date', 'asc'));
-        const querySnapshot = await getDocs(q);
-        const fetchedAgendas = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Agenda));
-        
-        const now = new Date();
-        const batasAgenda = new Date(now);
-        batasAgenda.setDate(batasAgenda.getDate() + BATAS_AGENDA_BERANDA_HARI);
-        batasAgenda.setHours(23, 59, 59, 999);
+        const agendaQuery = query(
+          collection(db, 'agendas'),
+          where('date', '>=', now.toISOString().slice(0, 10)),
+          where('date', '<=', batasAgenda.toISOString()),
+          orderBy('date', 'asc'),
+          limit(10),
+        );
 
-        // Hanya agenda yang belum lewat dan berlangsung maksimal 7 hari ke depan.
+        const [generalSnap, querySnapshot] = await Promise.all([
+          getDoc(doc(db, 'settings', 'general')),
+          getDocs(agendaQuery),
+        ]);
+        if (!active) return;
+
+        if (generalSnap.exists()) {
+          const data = generalSnap.data();
+          if (data.posters && data.posters.length > 0) {
+            setPosters(data.posters);
+          } else if (data.posterUrl) {
+            setPosters([{ url: data.posterUrl, link: data.posterLink || '#' }]);
+          }
+        }
+
+        const fetchedAgendas = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Agenda));
         const activeAgendas = fetchedAgendas.filter(a => {
           const agendaTime = getAgendaTargetTime(a);
           return (
@@ -135,13 +143,14 @@ export default function Sidebar({ menuName }: { menuName: string }) {
           );
         });
 
-        setAgendas(activeAgendas); 
+        setAgendas(activeAgendas);
       } catch (error) {
         console.log("Gagal memuat agenda", error);
       }
     };
-    
+
     fetchSidebarData();
+    return () => { active = false; };
   }, [menuName]);
 
   return (

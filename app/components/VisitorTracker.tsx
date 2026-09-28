@@ -11,7 +11,7 @@ export default function VisitorTracker() {
     if (!pathname) return;
 
     // Halaman admin dan login tidak masuk statistik pengunjung publik.
-    if (pathname.startsWith('/dashboard') || pathname.startsWith('/login')) return;
+    if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin-inventaris') || pathname.startsWith('/login')) return;
 
     // Mencegah React Strict Mode mengirim halaman yang sama dua kali.
     if (lastTrackedPath.current === pathname) return;

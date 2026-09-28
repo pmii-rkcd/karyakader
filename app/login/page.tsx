@@ -9,18 +9,33 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setBusy(true);
     
     try {
+      const inventoryLogin = await fetch('/api/inventory-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (inventoryLogin.ok) {
+        router.push('/admin-inventaris');
+        return;
+      }
+
       await signInWithEmailAndPassword(auth, email, password);
       // Jika berhasil, arahkan ke halaman dashboard
       router.push('/dashboard');
     } catch {
       setError('Gagal login. Periksa kembali email dan password Anda.');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -54,9 +69,10 @@ export default function LoginPage() {
           </div>
           <button
             type="submit"
+            disabled={busy}
             className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
           >
-            Masuk ke Dashboard
+            {busy ? 'Memeriksa...' : 'Masuk ke Dashboard'}
           </button>
         </form>
       </div>

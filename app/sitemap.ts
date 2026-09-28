@@ -37,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
 
     // 3. Daftar Halaman Statis (Menu Utama)
-    const staticRoutes = ['', '/bararasa', '/kabar', '/mutiara', '/nalar', '/tentang', '/penulis'].map((route) => ({
+    const staticRoutes = ['', '/bararasa', '/kabar', '/mutiara', '/nalar', '/inventaris', '/tentang', '/penulis'].map((route) => ({
       url: `${baseUrl}${route}`,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,

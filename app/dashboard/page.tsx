@@ -15,8 +15,25 @@ import { PenSquare, LayoutList, Trash2, Edit, Loader2, Plus, Image as ImageIcon 
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
+type PublishStatus = 'published' | 'draft';
+
+const toPublishStatus = (article: { status?: string; published?: boolean }): PublishStatus => {
+  if (article.published === false || article.status === 'Draft') return 'draft';
+  return 'published';
+};
+
+const statusLabel = (value: PublishStatus, publishAt: string) => value === 'draft' ? publishAt ? 'Terjadwal' : 'Draft' : 'Langsung Terbit';
+
+const toDatetimeLocal = (value?: ArticleDate) => {
+  if (!value) return '';
+  const date = typeof value.toDate === 'function' ? value.toDate() : 'seconds' in value ? new Date(value.seconds * 1000) : null;
+  if (!date) return '';
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+
 interface Article {
-  id: string; title: string; category: string; status: string; createdAt: ArticleDate;
+  id: string; title: string; category: string; status?: string; published?: boolean; createdAt: ArticleDate; publishAt?: ArticleDate;
   slug?: string; dateline?: string; content: string; imageUrl: string; tags: string[];
   kredit?: { penulis: string; fotoPenulis: string; editor: string; fotoEditor: string; fotografer: string; fotoFotografer: string; sumber: string; fotoSumber: string; };
 }
@@ -33,7 +50,8 @@ export default function DashboardPage() {
   const [title, setTitle] = useState('');
   const [dateline, setDateline] = useState('');
   const [category, setCategory] = useState('Kabar Dari Kawah');
-  const [status, setStatus] = useState('Langsung Terbit');
+  const [status, setStatus] = useState<PublishStatus>('published');
+  const [publishAt, setPublishAt] = useState('');
   const [image, setImage] = useState<File | null>(null);
   const [currentImageUrl, setCurrentImageUrl] = useState(''); 
   const [content, setContent] = useState('');
@@ -116,7 +134,7 @@ export default function DashboardPage() {
     setContentImageError('');
     setEditingId(article.id);
     setEditingSlug(article.slug || '');
-    setTitle(article.title); setDateline(article.dateline || ''); setCategory(article.category); setStatus(article.status || 'Langsung Terbit');
+    setTitle(article.title); setDateline(article.dateline || ''); setCategory(article.category); setStatus(toPublishStatus(article)); setPublishAt(toDatetimeLocal(article.publishAt));
     setContent(article.content); setTags(article.tags ? article.tags.join(', ') : ''); setCurrentImageUrl(article.imageUrl || '');
     setPenulis(article.kredit?.penulis || ''); setCurrentFotoPenulis(article.kredit?.fotoPenulis || '');
     setEditorName(article.kredit?.editor || ''); setCurrentFotoEditor(article.kredit?.fotoEditor || '');
@@ -133,7 +151,7 @@ export default function DashboardPage() {
     setEditingSlug('');
     setContentImageError('');
     setEditingId(null);
-    setTitle(''); setDateline(''); setCategory('Kabar Dari Kawah'); setStatus('Langsung Terbit');
+    setTitle(''); setDateline(''); setCategory('Kabar Dari Kawah'); setStatus('published'); setPublishAt('');
     setImage(null); setCurrentImageUrl(''); setContent(''); setTags('');
     setPenulis(''); setFotoPenulis(null); setCurrentFotoPenulis('');
     setEditorName(''); setFotoEditor(null); setCurrentFotoEditor('');
@@ -145,8 +163,10 @@ export default function DashboardPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (contentImageUploadPending.current || isSubmitting) return;
-    if (!title || !content || content === '<p><br></p>' || (!image && !currentImageUrl)) {
-      alert('Harap isi Judul, Gambar Sampul, dan Isi Berita!');
+    const isDraftMode = status === 'draft';
+    const contentIsEmpty = !content || content === '<p><br></p>';
+    if (!isDraftMode && (!title.trim() || contentIsEmpty || (!image && !currentImageUrl))) {
+      alert('Harap isi Judul, Gambar Sampul, dan Isi Berita sebelum menerbitkan langsung!');
       return;
     }
     setIsSubmitting(true);
@@ -157,12 +177,16 @@ export default function DashboardPage() {
       ]);
 
       const newArticleRef = editingId ? null : doc(collection(db, 'articles'));
-      const titleSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || 'berita';
+      const cleanTitle = title.trim() || 'Draft tanpa judul';
+      const cleanContent = content === '<p><br></p>' ? '' : content;
+      const titleSlug = cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || 'draft';
       const slug = editingSlug || `${titleSlug}-${editingId || newArticleRef!.id}`;
       const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [];
+      const isDraft = status === 'draft';
+      const scheduledPublishAt = isDraft && publishAt ? new Date(publishAt) : null;
 
       const articleData = {
-        title, slug, dateline: dateline || "", content, category, status,
+        title: cleanTitle, slug, dateline: dateline || "", content: cleanContent, category, status: statusLabel(status, publishAt),
         imageUrl: newImageUrl || currentImageUrl || "", 
         kredit: {
           penulis: penulis || 'Redaksi', fotoPenulis: newFotoPenulis || currentFotoPenulis || "", 
@@ -171,7 +195,8 @@ export default function DashboardPage() {
           sumber: sumber || '-', fotoSumber: newFotoSumber || currentFotoSumber || ""
         },
         tags: tagsArray,
-        published: status === 'Langsung Terbit'
+        published: !isDraft,
+        publishAt: scheduledPublishAt
       };
 
       if (editingId) {
@@ -183,7 +208,7 @@ export default function DashboardPage() {
           authorId: auth.currentUser?.uid || 'Unknown',
           authorEmail: auth.currentUser?.email || 'Unknown',
         });
-        alert(status === 'Draft' ? 'Draft berhasil disimpan!' : 'Berita baru berhasil dipublikasikan!');
+        alert(isDraft ? 'Draft berhasil disimpan!' : 'Berita baru berhasil dipublikasikan!');
       }
       
       resetForm(); setActiveTab('kelola');
@@ -265,8 +290,8 @@ export default function DashboardPage() {
                         {art.createdAt?.toDate ? art.createdAt.toDate().toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year:'numeric'}) : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wider shadow-sm ${art.status === 'Draft' ? 'bg-gray-100 text-gray-600 border border-gray-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-                          {art.status || 'Published'}
+                        <span className={`px-3 py-1 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wider shadow-sm ${toPublishStatus(art) === 'draft' ? 'bg-gray-100 text-gray-600 border border-gray-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+                          {toPublishStatus(art) === 'draft' ? 'Draft' : 'Terbit'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
@@ -337,10 +362,15 @@ export default function DashboardPage() {
               </div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                 <label className="block text-sm font-bold text-[#0f2136] mb-2">Status Publikasi</label>
-                <select value={status} onChange={(e) => setStatus(e.target.value)} className={`w-full px-4 py-3.5 border font-bold rounded-xl outline-none cursor-pointer transition ${status === 'Draft' ? 'bg-gray-50 border-gray-300 text-gray-600' : 'bg-green-50 border-green-200 text-green-700'}`}>
-                  <option value="Langsung Terbit">✅ Terbitkan Langsung</option>
-                  <option value="Draft">📝 Simpan ke Draft</option>
+                <select value={status} onChange={(e) => setStatus(e.target.value as PublishStatus)} className={`w-full px-4 py-3.5 border font-bold rounded-xl outline-none cursor-pointer transition ${status === 'draft' ? 'bg-gray-50 border-gray-300 text-gray-600' : 'bg-green-50 border-green-200 text-green-700'}`}>
+                  <option value="published">Terbitkan Langsung</option>
+                  <option value="draft">Simpan ke Draft</option>
                 </select>
+                {status === 'draft' && <div className="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3">
+                  <label className="mb-1 block text-xs font-bold text-yellow-800">Jadwalkan tayang otomatis (opsional)</label>
+                  <input type="datetime-local" value={publishAt} onChange={(e) => setPublishAt(e.target.value)} className="w-full rounded-lg border border-yellow-300 bg-white px-3 py-2 text-sm font-semibold text-[#0f2136] outline-none focus:ring-2 focus:ring-yellow-500" />
+                  <p className="mt-2 text-[11px] leading-relaxed text-yellow-800">Kosongkan jika hanya ingin menyimpan draft biasa. Jika diisi, berita akan tampil otomatis setelah tanggal dan jam ini.</p>
+                </div>}
               </div>
             </div>
           </div>
@@ -447,7 +477,7 @@ export default function DashboardPage() {
           <div className="pt-6">
             <button type="submit" disabled={isSubmitting || isUploadingContentImage} className={`w-full py-5 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all duration-300 text-sm md:text-base flex justify-center items-center gap-3 ${isSubmitting || isUploadingContentImage ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#0f2136] hover:bg-yellow-500 hover:text-[#0f2136] hover:-translate-y-1 hover:shadow-2xl'}`}>
               {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : editingId ? <Edit className="w-6 h-6" /> : <PenSquare className="w-6 h-6" />} 
-              {isSubmitting ? 'Sedang Memproses Server...' : editingId ? 'Simpan Perubahan Berita' : status === 'Draft' ? 'Simpan Draft' : 'Terbitkan Berita Sekarang'}
+              {isSubmitting ? 'Sedang Memproses Server...' : editingId ? 'Simpan Perubahan Berita' : status === 'draft' ? 'Simpan Draft' : 'Terbitkan Berita Sekarang'}
             </button>
           </div>
 

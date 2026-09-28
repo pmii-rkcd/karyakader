@@ -7,10 +7,10 @@ import { getPublicArticleBatch } from '@/lib/public-article-batch';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import Sidebar from './components/Sidebar';
 // 🚀 IMPORT LUCIDE ICONS
 import { User, Eye, MessageSquare, Loader2, Clock } from 'lucide-react';
 
@@ -42,6 +42,11 @@ const CATEGORIES = [
   { name: 'Mutiara Chondro', path: '/mutiara' },
   { name: 'Nalar Tempaan', path: '/nalar' }
 ];
+
+const Sidebar = dynamic(() => import('./components/Sidebar'), {
+  ssr: false,
+  loading: () => <div className="h-72 rounded-2xl border border-gray-100 bg-white dark:border-gray-800/60 dark:bg-[#0d1520]" aria-hidden="true" />,
+});
 
 export default function HomePage() {
   const [articles, setArticles] = useState<Article[]>([]);
