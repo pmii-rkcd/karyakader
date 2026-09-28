@@ -2,6 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 const cookieName = 'inventory_session';
 const maxAgeSeconds = 60 * 60 * 12;
+const defaultInventoryPassword = 'inventaris95';
 
 function secret() {
   return process.env.INVENTORY_SESSION_SECRET || process.env.FIREBASE_ADMIN_PRIVATE_KEY || '';
@@ -26,7 +27,7 @@ export function inventorySessionMaxAge() {
 }
 
 export function hasInventoryPassword(password: string) {
-  const expected = process.env.INVENTORY_ACCESS_PASSWORD || '';
+  const expected = process.env.INVENTORY_ACCESS_PASSWORD || defaultInventoryPassword;
   return Boolean(expected && safeEqual(password, expected));
 }
 
@@ -47,5 +48,6 @@ export function verifyInventorySessionValue(value: string | undefined) {
 }
 
 export function isInventorySessionConfigured() {
-  return Boolean(process.env.INVENTORY_ACCESS_PASSWORD && secret());
+  return Boolean((process.env.INVENTORY_ACCESS_PASSWORD || defaultInventoryPassword) && secret());
 }
+
