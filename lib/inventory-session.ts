@@ -26,7 +26,7 @@ export function inventorySessionMaxAge() {
 }
 
 export function hasInventoryPassword(password: string) {
-  const expected = process.env.INVENTORY_ACCESS_PASSWORD;
+  const expected = process.env.INVENTORY_ACCESS_PASSWORD || '';
   return Boolean(expected && safeEqual(password, expected));
 }
 
