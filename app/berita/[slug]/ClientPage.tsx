@@ -22,7 +22,7 @@ interface Article {
   id: string; title: string; content: string; category: string; imageUrl: string;
   authorEmail: string; createdAt: ArticleDate; publishAt?: ArticleDate; slug: string; dateline?: string; tags?: string[];
   views?: number; commentCount?: number;
-  kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; fotoUrl?: string; };
+  kredit?: { penulis: string; penulisSlug?: string; editor: string; fotografer: string; sumber: string; fotoUrl?: string; };
 }
 
 interface Comment { id: string; name: string; text: string; createdAt: ArticleDate; articleId?: string; }

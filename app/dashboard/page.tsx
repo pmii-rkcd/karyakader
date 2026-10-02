@@ -2,12 +2,13 @@
 'use client';
 import type { ArticleDate } from '@/lib/content-types';
 import { isPublicArticle } from '@/lib/article-visibility';
+import { generateAuthorSlug, normalizeAuthorName, shouldCreateAuthorProfile } from '@/lib/author-profile';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { createImageUploader } from '@/lib/quill-image-uploader';
 import { uploadImageToCloudinary } from '@/lib/upload-image';
 import { db, auth } from '@/lib/firebase';
-import { collection, setDoc, serverTimestamp, getDocs, query, orderBy, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, setDoc, serverTimestamp, getDocs, query, orderBy, where, limit, addDoc, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css'; 
 
@@ -44,10 +45,40 @@ const toDatetimeLocal = (value?: ArticleDate) => {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 };
 
+
+async function ensureAuthorProfile({ name, imageUrl }: { name: string; imageUrl: string }) {
+  const normalizedName = normalizeAuthorName(name);
+  if (!shouldCreateAuthorProfile(normalizedName)) return '';
+
+  const slug = generateAuthorSlug(normalizedName);
+  if (!slug) return '';
+
+  const existingBySlug = await getDocs(query(collection(db, 'authors'), where('slug', '==', slug), limit(1)));
+  if (!existingBySlug.empty) return slug;
+
+  const existingByName = await getDocs(query(collection(db, 'authors'), where('name', '==', normalizedName), limit(1)));
+  if (!existingByName.empty) return slug;
+
+  await addDoc(collection(db, 'authors'), {
+    name: normalizedName,
+    slug,
+    role: 'Kader / Penulis',
+    bio: '',
+    instagram: '',
+    linkedin: '',
+    imageUrl: imageUrl || '/icon.png',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    source: 'article-credit',
+  });
+
+  return slug;
+}
+
 interface Article {
   id: string; title: string; category: string; status?: string; published?: boolean; createdAt: ArticleDate; publishAt?: ArticleDate;
   slug?: string; dateline?: string; content: string; imageUrl: string; tags: string[];
-  kredit?: { penulis: string; fotoPenulis: string; editor: string; fotoEditor: string; fotografer: string; fotoFotografer: string; sumber: string; fotoSumber: string; };
+  kredit?: { penulis: string; penulisSlug?: string; fotoPenulis: string; editor: string; fotoEditor: string; fotografer: string; fotoFotografer: string; sumber: string; fotoSumber: string; };
 }
 
 export default function DashboardPage() {
@@ -194,16 +225,19 @@ export default function DashboardPage() {
       const titleSlug = cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') || 'draft';
       const slug = editingSlug || `${titleSlug}-${editingId || newArticleRef!.id}`;
       const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [];
+      const cleanPenulis = normalizeAuthorName(penulis) || 'Redaksi';
       const isDraft = status === 'draft';
       const selectedPublishAt = publishAt ? new Date(publishAt) : null;
       const scheduledPublishAt = isDraft && selectedPublishAt ? selectedPublishAt : null;
       const savedPublishAt = scheduledPublishAt || (editingId && selectedPublishAt ? selectedPublishAt : null);
+      const penulisImageUrl = newFotoPenulis || currentFotoPenulis || '';
+      const penulisSlug = await ensureAuthorProfile({ name: cleanPenulis, imageUrl: penulisImageUrl });
 
       const articleData = {
         title: cleanTitle, slug, dateline: dateline || "", content: cleanContent, category, status: statusLabel(status, publishAt),
         imageUrl: newImageUrl || currentImageUrl || "", 
         kredit: {
-          penulis: penulis || 'Redaksi', fotoPenulis: newFotoPenulis || currentFotoPenulis || "", 
+          penulis: cleanPenulis, penulisSlug, fotoPenulis: penulisImageUrl, 
           editor: editorName || 'Redaksi', fotoEditor: newFotoEditor || currentFotoEditor || "",
           fotografer: fotografer || '-', fotoFotografer: newFotoFotografer || currentFotoFotografer || "",
           sumber: sumber || '-', fotoSumber: newFotoSumber || currentFotoSumber || ""
