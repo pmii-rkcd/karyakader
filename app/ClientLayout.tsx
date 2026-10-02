@@ -21,6 +21,17 @@ type SiteSettingsCache = {
 
 const SITE_SETTINGS_CACHE_KEY = 'karyakader.site-settings.v1';
 const SITE_SETTINGS_CACHE_TTL = 5 * 60 * 1000;
+const JAKARTA_TIME_ZONE = 'Asia/Jakarta';
+
+function formatJakartaDate(date = new Date()) {
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: JAKARTA_TIME_ZONE,
+  }).format(date);
+}
 
 const readCachedSiteSettings = (): SiteSettingsCache | null => {
   if (typeof window === 'undefined') return null;
@@ -59,9 +70,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState('');
 
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
+
+  useEffect(() => {
+    setCurrentDate(formatJakartaDate());
+    const timer = window.setInterval(() => setCurrentDate(formatJakartaDate()), 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (isAdminPage) return;
@@ -108,9 +126,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-gray-50 dark:bg-gray-900">{children}</div>;
   }
 
-  const currentDate = new Date().toLocaleDateString('id-ID', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  });
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-[#0a0f18] transition-colors duration-500 font-sans">
@@ -119,7 +134,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <div className="bg-[#0f2136] dark:bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-8 flex flex-wrap justify-between items-center border-b border-gray-800 gap-2 transition-colors duration-500 relative z-[70]">
         <div className="flex items-center gap-2 font-medium tracking-wide">
           <Calendar className="w-3.5 h-3.5 text-yellow-500 hidden sm:block" />
-          <span suppressHydrationWarning>{currentDate}</span>
+          <span suppressHydrationWarning>{currentDate || 'Memuat tanggal...'}</span>
         </div>
         
         <div className="flex items-center gap-4">
