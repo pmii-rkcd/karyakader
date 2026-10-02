@@ -1,4 +1,5 @@
 import { isPublicArticle } from '@/lib/article-visibility';
+import { getShareImageUrl } from '@/lib/social-image';
 // app/berita/[slug]/page.tsx
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const shortDesc = plainText.substring(0, 150) + '...';
     
     // 🔥 SABUK PENGAMAN: Jika lupa kasih foto, pakai Logo PMII
-    const imageUrl = article.imageUrl || 'https://karyakader.id/icon.png';
+    const imageUrl = getShareImageUrl(article.imageUrl);
 
     return {
       title: `${article.title} - Karyakader.id`,
@@ -67,7 +68,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         '@context': 'https://schema.org',
         '@type': 'NewsArticle',
         headline: article.title,
-        image: [article.imageUrl || 'https://karyakader.id/icon.png'],
+        image: [getShareImageUrl(article.imageUrl)],
         datePublished: datePublished,
         dateModified: dateModified,
         author: [{
