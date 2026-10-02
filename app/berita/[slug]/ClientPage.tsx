@@ -2,6 +2,7 @@
 'use client';
 import type { ArticleDate } from '@/lib/content-types';
 import { isPublicArticle } from '@/lib/article-visibility';
+import { formatArticlePublishedDate } from '@/lib/article-date';
 
 import { useEffect, useState } from 'react';
 import DOMPurify from 'dompurify';
@@ -19,7 +20,7 @@ import { Loader2, ChevronRight, User, CalendarDays, Send, MessageSquare } from '
 
 interface Article {
   id: string; title: string; content: string; category: string; imageUrl: string;
-  authorEmail: string; createdAt: ArticleDate; slug: string; dateline?: string; tags?: string[];
+  authorEmail: string; createdAt: ArticleDate; publishAt?: ArticleDate; slug: string; dateline?: string; tags?: string[];
   views?: number; commentCount?: number;
   kredit?: { penulis: string; editor: string; fotografer: string; sumber: string; fotoUrl?: string; };
 }
@@ -190,7 +191,7 @@ export default function DetailBerita() {
     );
   }
 
-  const formattedDate = article.createdAt?.toDate ? article.createdAt.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Tanggal tidak diketahui';
+  const formattedDate = formatArticlePublishedDate(article);
 
   let displayContent = article.content;
 

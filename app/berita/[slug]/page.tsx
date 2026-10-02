@@ -1,5 +1,6 @@
 import { isPublicArticle } from '@/lib/article-visibility';
 import { getShareImageUrl } from '@/lib/social-image';
+import { getArticlePublishedDate } from '@/lib/article-date';
 // app/berita/[slug]/page.tsx
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -61,7 +62,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
     if (querySnapshot.docs.some(item => isPublicArticle(item.data()))) {
       const article = querySnapshot.docs.find(item => isPublicArticle(item.data()))!.data();
-      const datePublished = article.createdAt?.toDate().toISOString() || new Date().toISOString();
+      const datePublished = (getArticlePublishedDate(article) || new Date()).toISOString();
       const dateModified = article.updatedAt?.toDate().toISOString() || datePublished;
 
       jsonLd = {

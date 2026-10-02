@@ -1,6 +1,7 @@
 // app/dashboard/page.tsx
 'use client';
 import type { ArticleDate } from '@/lib/content-types';
+import { isPublicArticle } from '@/lib/article-visibility';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { createImageUploader } from '@/lib/quill-image-uploader';
@@ -17,16 +18,27 @@ const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 type PublishStatus = 'published' | 'draft';
 
-const toPublishStatus = (article: { status?: string; published?: boolean }): PublishStatus => {
-  if (article.published === false || article.status === 'Draft') return 'draft';
-  return 'published';
+const toPublishStatus = (article: { status?: string; published?: boolean; publishAt?: ArticleDate }): PublishStatus => {
+  return isPublicArticle(article) ? 'published' : 'draft';
 };
 
 const statusLabel = (value: PublishStatus, publishAt: string) => value === 'draft' ? publishAt ? 'Terjadwal' : 'Draft' : 'Langsung Terbit';
 
+const toDateObject = (value?: ArticleDate) => {
+  if (!value) return null;
+  return typeof value.toDate === 'function' ? value.toDate() : 'seconds' in value ? new Date(value.seconds * 1000) : null;
+};
+
+const getArticleDisplayDate = (article: { createdAt?: ArticleDate; publishAt?: ArticleDate }) => {
+  const publishDate = toDateObject(article.publishAt);
+  const createdDate = toDateObject(article.createdAt);
+  const date = publishDate || createdDate;
+  return date ? date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+};
+
 const toDatetimeLocal = (value?: ArticleDate) => {
   if (!value) return '';
-  const date = typeof value.toDate === 'function' ? value.toDate() : 'seconds' in value ? new Date(value.seconds * 1000) : null;
+  const date = toDateObject(value);
   if (!date) return '';
   const offset = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
@@ -183,7 +195,9 @@ export default function DashboardPage() {
       const slug = editingSlug || `${titleSlug}-${editingId || newArticleRef!.id}`;
       const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [];
       const isDraft = status === 'draft';
-      const scheduledPublishAt = isDraft && publishAt ? new Date(publishAt) : null;
+      const selectedPublishAt = publishAt ? new Date(publishAt) : null;
+      const scheduledPublishAt = isDraft && selectedPublishAt ? selectedPublishAt : null;
+      const savedPublishAt = scheduledPublishAt || (editingId && selectedPublishAt ? selectedPublishAt : null);
 
       const articleData = {
         title: cleanTitle, slug, dateline: dateline || "", content: cleanContent, category, status: statusLabel(status, publishAt),
@@ -196,7 +210,7 @@ export default function DashboardPage() {
         },
         tags: tagsArray,
         published: !isDraft,
-        publishAt: scheduledPublishAt
+        publishAt: savedPublishAt
       };
 
       if (editingId) {
@@ -287,7 +301,7 @@ export default function DashboardPage() {
                         <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider bg-gray-100 inline-block px-2 py-0.5 rounded">{art.category}</div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap hidden md:table-cell font-medium">
-                        {art.createdAt?.toDate ? art.createdAt.toDate().toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year:'numeric'}) : '-'}
+                        {getArticleDisplayDate(art)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 inline-flex text-[10px] leading-5 font-bold rounded-full uppercase tracking-wider shadow-sm ${toPublishStatus(art) === 'draft' ? 'bg-gray-100 text-gray-600 border border-gray-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
