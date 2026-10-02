@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
+import { generateAuthorSlug, normalizeAuthorName, shouldCreateAuthorProfile } from '@/lib/author-profile';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { Loader2, Plus, Edit, Trash2, X, Upload, Save, UserCheck, AlertTriangle } from 'lucide-react';
@@ -21,16 +22,12 @@ interface Author {
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || ""; 
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
 
-// 🔥 FUNGSI PEMBUAT SLUG OTOMATIS DARI NAMA 🔥
-const generateSlug = (text: string) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .replace(/\s+/g, '-')           // Ganti spasi dengan strip (-)
-    .replace(/[^\w\-]+/g, '')       // Hapus karakter khusus selain huruf/angka
-    .replace(/\-\-+/g, '-')         // Cegah ada double strip (--)
-    .replace(/^-+/, '')             // Hapus strip di awal teks
-    .replace(/-+$/, '');            // Hapus strip di akhir teks
+type ArticleCredit = {
+  kredit?: {
+    penulis?: string;
+    fotoPenulis?: string;
+    fotoUrl?: string;
+  };
 };
 
 export default function ManajemenPenulisPage() {
@@ -49,12 +46,70 @@ export default function ManajemenPenulisPage() {
   const [imageFile, setImageFile] = useState<File | null>(null); 
   const [imageUrl, setImageUrl] = useState(''); 
 
+  const syncAuthorsFromArticles = async (existingAuthors: Author[]) => {
+    const existingSlugs = new Set(existingAuthors.map(author => author.slug).filter(Boolean));
+    const existingNames = new Set(existingAuthors.map(author => normalizeAuthorName(author.name).toLowerCase()));
+    const missingSlugUpdates = existingAuthors
+      .map(author => ({ ...author, generatedSlug: generateAuthorSlug(author.name) }))
+      .filter(author => !author.slug && author.generatedSlug);
+
+    await Promise.all(missingSlugUpdates.map(author =>
+      updateDoc(doc(db, 'authors', author.id), { slug: author.generatedSlug, updatedAt: serverTimestamp() })
+    ));
+
+    missingSlugUpdates.forEach(author => existingSlugs.add(author.generatedSlug));
+
+    const articlesSnapshot = await getDocs(collection(db, 'articles'));
+    const missingAuthors = new Map<string, { name: string; slug: string; imageUrl: string }>();
+
+    articlesSnapshot.docs.forEach(articleDoc => {
+      const data = articleDoc.data() as ArticleCredit;
+      const authorName = normalizeAuthorName(data.kredit?.penulis || '');
+      if (!shouldCreateAuthorProfile(authorName)) return;
+
+      const slug = generateAuthorSlug(authorName);
+      const normalizedKey = authorName.toLowerCase();
+      if (!slug || existingSlugs.has(slug) || existingNames.has(normalizedKey) || missingAuthors.has(slug)) return;
+
+      missingAuthors.set(slug, {
+        name: authorName,
+        slug,
+        imageUrl: data.kredit?.fotoPenulis || data.kredit?.fotoUrl || '/icon.png',
+      });
+    });
+
+    if (missingAuthors.size === 0) return false;
+
+    await Promise.all(Array.from(missingAuthors.values()).map(author =>
+      addDoc(collection(db, 'authors'), {
+        name: author.name,
+        slug: author.slug,
+        role: 'Kader / Penulis',
+        bio: '',
+        instagram: '',
+        linkedin: '',
+        imageUrl: author.imageUrl,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        source: 'article-credit-backfill',
+      })
+    ));
+
+    return true;
+  };
+
   const fetchAuthors = async () => {
     setIsLoading(true);
     try {
       const querySnapshot = await getDocs(collection(db, 'authors'));
       const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Author));
-      setAuthors(data);
+      const hasNewAuthors = await syncAuthorsFromArticles(data);
+      if (hasNewAuthors) {
+        const refreshedSnapshot = await getDocs(collection(db, 'authors'));
+        setAuthors(refreshedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Author)));
+      } else {
+        setAuthors(data);
+      }
     } catch (error) {
       console.error("Gagal mengambil data penulis:", error);
     } finally {
@@ -130,7 +185,7 @@ export default function ManajemenPenulisPage() {
       }
 
       // 🔥 MEMBUAT SLUG DARI NAMA YANG DIINPUT 🔥
-      const authorSlug = generateSlug(name);
+      const authorSlug = generateAuthorSlug(name);
 
       const authorData = {
         name,
