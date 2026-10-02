@@ -85,9 +85,12 @@ export default function DetailBerita() {
 
           if (articleData.kredit?.penulis && articleData.kredit.penulis !== 'Redaksi') {
             try {
-              const authorQuery = query(collection(db, 'authors'), where('name', '==', articleData.kredit.penulis), limit(1));
+              const authorSlug = articleData.kredit.penulisSlug;
+              const authorQuery = authorSlug
+                ? query(collection(db, 'authors'), where('slug', '==', authorSlug), limit(1))
+                : query(collection(db, 'authors'), where('name', '==', articleData.kredit.penulis), limit(1));
               const authorSnap = await getDocs(authorQuery);
-              if (!authorSnap.empty) setAuthorProfileId(authorSnap.docs[0].id);
+              if (!authorSnap.empty) setAuthorProfileId(authorSnap.docs[0].data().slug || authorSnap.docs[0].id);
             } catch (err) { console.error("Gagal cek penulis:", err); }
           }
 
