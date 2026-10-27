@@ -76,9 +76,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const mounted = useMounted();
 
   useEffect(() => {
-    setCurrentDate(formatJakartaDate());
+    const initialUpdate = window.setTimeout(() => setCurrentDate(formatJakartaDate()), 0);
     const timer = window.setInterval(() => setCurrentDate(formatJakartaDate()), 60 * 1000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialUpdate);
+      window.clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {
